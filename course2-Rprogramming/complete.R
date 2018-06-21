@@ -7,10 +7,10 @@
 ############
 
 ## Set parameters
-directory <- "specdata"
+# directory <- "specdata"
 
 ## Test 1
-id <- 1
+# id <- 1
 
 # ## Test 2
 # id <- c(2, 4, 8, 10, 12)
@@ -24,6 +24,7 @@ id <- 1
 ## Source necessary functions
 source("read_one_csv.R")
 
+## Define complete()
 complete <- function(directory, id = 1:332){
   ## directory: (character, len 1) location of .csv files
   
@@ -53,4 +54,4 @@ complete <- function(directory, id = 1:332){
 }
 
 ## Test complete()
-print(complete(directory = directory, id = id))
+# print(complete(directory = directory, id = id))
