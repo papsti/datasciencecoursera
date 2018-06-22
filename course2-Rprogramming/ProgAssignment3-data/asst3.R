@@ -6,7 +6,8 @@
 ## Set number of test
 ## 1: best()
 ## 2: rankhospital()
-test <- 2
+## 3: rankall()
+test <- 3
 
 ############
 ## PART 0 ##
@@ -53,7 +54,7 @@ if (test==1){
 ## PART 2 ##
 ############
 
-## Testing rankhospital.R
+## Testing rankhospital()
 if (test==2){
   source("rankhospital.R")
   state <- "TX"
@@ -68,4 +69,29 @@ if (test==2){
   outcome <- "heart attack"
   rank <- 5000
   print(rankhospital(state, outcome, rank))
+}
+
+############
+## PART 3 ##
+############
+
+## Testing rankall()
+## NOTE: each test of rankall() takes a while so better off doing one
+## at a time (comment all other lines out)
+if (test==3){
+  source("rankall.R")
+  
+  # outcome <- "heart attack"
+  # rank <- 20
+  # num_disp <- 10
+  # print(head(rankall(outcome, rank), num_disp))
+  
+  # outcome <- "pneumonia"
+  # rank <- "worst"
+  # num_disp <- 3
+  # print(tail(rankall(outcome, rank), num_disp))
+  
+  outcome <- "heart failure"
+  num_disp <- 10
+  print(tail(rankall(outcome), num_disp))
 }
