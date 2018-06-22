@@ -3,11 +3,16 @@
 ##
 ## Script to test functions written for asst 3
 
+## Clear environment
+rm(list=ls())
+
 ## Set number of test
 ## 1: best()
 ## 2: rankhospital()
-## 3: rankall()
-test <- 3
+## 3: rankall() ## NOTE: each test is time-intensive, so only run
+## one at a time; specify which 1:3 using test_num
+fun_to_test <- 3
+test_num <- 2
 
 ############
 ## PART 0 ##
@@ -28,7 +33,7 @@ test <- 3
 ############
 
 ## Testing best()
-if (test==1){
+if (fun_to_test==1){
   source("best.R")
   state <- "TX"
   outcome <- "heart attack"
@@ -55,7 +60,7 @@ if (test==1){
 ############
 
 ## Testing rankhospital()
-if (test==2){
+if (fun_to_test==2){
   source("rankhospital.R")
   state <- "TX"
   outcome <- "heart failure"
@@ -77,21 +82,23 @@ if (test==2){
 
 ## Testing rankall()
 ## NOTE: each test of rankall() takes a while so better off doing one
-## at a time (comment all other lines out)
-if (test==3){
+## at a time, hence the second if condition
+if (fun_to_test==3){
   source("rankall.R")
   
-  # outcome <- "heart attack"
-  # rank <- 20
-  # num_disp <- 10
-  # print(head(rankall(outcome, rank), num_disp))
-  
-  # outcome <- "pneumonia"
-  # rank <- "worst"
-  # num_disp <- 3
-  # print(tail(rankall(outcome, rank), num_disp))
-  
-  outcome <- "heart failure"
-  num_disp <- 10
-  print(tail(rankall(outcome), num_disp))
+  if (test_num==1){
+    outcome <- "heart attack"
+    rank <- 20
+    num_disp <- 10
+    print(head(rankall(outcome, rank), num_disp))    
+  } else if (test_num==2){
+    outcome <- "pneumonia"
+    rank <- "worst"
+    num_disp <- 3
+    print(tail(rankall(outcome, rank), num_disp))
+  } else if (test_num==3){
+    outcome <- "heart failure"
+    num_disp <- 10
+    print(tail(rankall(outcome), num_disp))
+  }
 }
