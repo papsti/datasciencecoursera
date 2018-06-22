@@ -23,6 +23,6 @@
 
 ## Testing best()
 source("best.R")
-state <- "TX"
-outcome <- "heart attack"
+state <- "NY"
+outcome <- "hert attack"
 print(best(state, outcome))
