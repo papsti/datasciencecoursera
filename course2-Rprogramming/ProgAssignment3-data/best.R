@@ -5,6 +5,7 @@
 ## hospital in the state with the best (i.e. lowest) 30-day mortality
 ## for the specified outcome
 
+## Load read_sort_data()
 source("read_sort_data.R")
 
 best <- function(state, outcome){
@@ -23,5 +24,5 @@ best <- function(state, outcome){
   
   ## Return top entry of sorted data and convert to string to avoid
   ## printout of all factors in that column
-  as.character(outcomedata$Hospital.Name[1])
+  as.character(outcomedata$hospital[1])
 }

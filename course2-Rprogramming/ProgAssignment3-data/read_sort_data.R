@@ -44,16 +44,16 @@ read_sort_data <- function(state, outcome){
   ## Supress warnings about coercing NAs in outcome column (this is
   ## what we want to happen)
   outcomedata <- suppressWarnings(
-    data.frame(Hospital.Name = outcomedata[,2],
+    data.frame(hospital = outcomedata[,2],
                state = outcomedata[,7],
-               Rate = as.numeric(
+               rate = as.numeric(
                  outcomedata[, outcomeindx])))
   
   ## Only keep observations corresponding to selected state
   outcomedata <- outcomedata[outcomedata$state %in% state,]
   
   ## Get rid of state column (no longer needed)
-  outcomedata <- outcomedata[,c("Hospital.Name", "Rate")]
+  outcomedata <- outcomedata[,c("hospital", "rate")]
   
   ## Keep only complete cases
   outcomedata <- outcomedata[complete.cases(outcomedata),]
@@ -61,5 +61,5 @@ read_sort_data <- function(state, outcome){
   ## Sort by lowest outcome,
   ## then by alphabetical order on hospital name
   outcomedata <- outcomedata[with(outcomedata,
-                                  order(Rate, Hospital.Name)),]
+                                  order(rate, hospital)),]
 }
