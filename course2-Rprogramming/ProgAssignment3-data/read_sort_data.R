@@ -5,12 +5,12 @@ read_sort_data <- function(state, outcome){
   ## in state (one of: "heart attack", "heart failure", "pneumonia")
   
   ## Returns a data frame in the format
-  ## Hospital.Name Rate
-  ## "A HOSPITAL"   2.3
+  ## hospital rate
+  ## "ITHACA"     2.3
   ## ...
   ## for the given state and given outcome's 30-day death rate
-  ## sorted first by rate (ascending) and then
-  ## by alphabetical order on the hospital name.
+  ## sorted first by rate (ascending) and then by alphabetical order
+  ## on the hospital name.
   
   ## Read data
   outcomedata <- read.csv("outcome-of-care-measures.csv",

@@ -18,12 +18,17 @@ rankhospital <- function(state, outcome, rank){
   ## outcome (based on same ranking rules as in best.R)
   ## Values: "best", "worst", or an integer indicating the ranking
   ## (smaller numbers are better)
-  ## If num > number of hospitals in state (with data for given
+  ## If rank > number of hospitals in state (with data for given
   ## outcome), return NA
+  
+  ## Returns the name of the hospital in the given state at given rank
+  ## for that particular outcome based on having the lowest 30-day 
+  ## death rate. In the case of a tie, return the first hospital by
+  ## alphabetical order.
   
   ## Read and sort data as needed
   outcomedata <- read_sort_data(state, outcome)
-  
+
   ## Get number of observations
   n <- nrow(outcomedata)
   
