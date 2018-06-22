@@ -9,10 +9,11 @@ rm(list=ls())
 ## Set number of test
 ## 1: best()
 ## 2: rankhospital()
-## 3: rankall() ## NOTE: each test is time-intensive, so only run
-## one at a time; specify which 1:3 using test_num
+## 3: rankall()
+## NOTE: each test for rankall() is slow, so only run one at a time;
+## specify which (1, 2, or 3) using test_num
 fun_to_test <- 3
-test_num <- 2
+test_num <- 3
 
 ############
 ## PART 0 ##
