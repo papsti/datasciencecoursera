@@ -1,6 +1,4 @@
-=================
-=== CODE BOOK ===
-=================
+# CODE BOOK
 
 # `run_analysis.R`
 
@@ -10,7 +8,7 @@
 
 ## `full_tidy_data`
 
-### Variables
+### Variables {#full_variables}
 
 `full_tidy_data` is a `data.frame` object with 10299 observations of 68 variables, including:
 
@@ -111,3 +109,13 @@ Finally a Fast Fourier Transform (FFT) was applied to some of these signals prod
 The set of variables that were estimated from these signals are:
 * mean: Mean value
 * std: Standard deviation
+
+## `mean_tidy_data`
+
+### Variables
+
+`mean_tidy_data` is a `data.frame` object with 180 observations of 68 variables, including:
+
+* `subject_id`: (integer) the ID number of the experimental subject
+* `activity`: (factor) name of the activity being performed (options include: "LAYING", "SITTING", "STANDING", "WALKING", "WALKING\_DOWNSTAIRS", "WALKING\_UPSTAIRS")
+* the mean of all the other variables listed in the [`full_tidy_data` variables](#full_variables), for each activity and each participant (66 variables in total)
