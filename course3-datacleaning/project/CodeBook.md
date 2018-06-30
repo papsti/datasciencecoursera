@@ -8,8 +8,6 @@
 
 ## `full_tidy_data`
 
-### Variables
-
 `full_tidy_data` is a `data.frame` object with 10299 observations of 68 variables, including:
 
 * `subject_id`: (integer) the ID number of the experimental subject
