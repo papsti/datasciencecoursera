@@ -15,9 +15,9 @@ The script starts by defining two helper functions:
 
 ## `aggregate_data()`
 
-These helper functions are then called the function `aggregate_data()`, which takes a data "type" (either "train" or "test", representing training data or testing data) and returns a tidy data frame.
+These helper functions are then called the function `aggregate_data()`, which takes a data "type" (either `"train"` or `"test"`, representing training data or testing data) and returns a tidy data frame.
 
-The function first loads the experimental subject ID data. It then loads both the activity data and an activity lookup table since the activity data is coded using integers. The function replaces the activity codes in the activity data with descriptive names like "WALKING" and "STANDING" using the lookup table.
+The function first loads the experimental subject ID data. It then loads both the activity data and an activity lookup table since the activity data is coded using integers. The function replaces the activity codes in the activity data with descriptive names like `"WALKING"` and `"STANDING"` using the lookup table.
 
 Next, the function loads the features (measurements) data, as well as the variable labels. The features data is subset to only include variables that are means and standard deviations of raw measurements. The features data column names are then tidied to be easier to use in subsequent data analysis.
 
@@ -25,7 +25,7 @@ Lastly, the function returns a data frame with the subject ID, activity, and fea
 
 ## Generate `full_tidy_data`
 
-The script uses the `aggregate_data()` function with the arguments "train" and "test" to aggregate data for the training and testing data, respectively. It then merges both sets of observations into one tidy data set named `full_tidy_data`.
+The script uses the `aggregate_data()` function with the arguments `"train"` and `"test"` to aggregate data for the training and testing data, respectively. It then merges both sets of observations into one tidy data set named `full_tidy_data`.
 
 ## Generate `mean_tidy_data`
 
