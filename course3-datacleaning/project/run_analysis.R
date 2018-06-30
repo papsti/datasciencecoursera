@@ -107,7 +107,7 @@ aggregate_data <- function(data_type){
   ## (means and standard deviations of measurements)
   feature_cols <- get_feature_colnames()
   
-  ## Keep only desired feature columns
+  ## Keep only desired feature columns (means and standard dev cols)
   features <- features[,feature_cols]
   
   ## Tidy features colnames
@@ -136,11 +136,13 @@ full_tidy_data <- rbind(training_data,testing_data)
 ## Generate tidy data with the average of each variable
 ## for each activity and each subject
 
+## Automatically generate arguments for summarize() data
+## as a string to parse() and eval() later
+
 ## Get tidy feature column names
 feature_cols <- tidy_feature_colnames(get_feature_colnames())
 
-## Automatically generate R code needed to summarize data using
-## with means as a string using feature column names to eval() later
+## Generate list of mean_commands from list of feature cols
 mean_commands <- lapply(feature_cols, function(feat){
   paste0("MEAN_", feat, "=mean(", feat,", na.rm=TRUE)")
 })

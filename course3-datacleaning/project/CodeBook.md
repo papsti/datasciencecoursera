@@ -3,8 +3,8 @@
 # `run_analysis.R`
 
 `run_analysis.R` generates two data frames:
-* `full_tidy_data`
-* `mean_tidy_data`
+* [`full_tidy_data`](#full_tidy_data)
+* [`mean_tidy_data`](#mean_tidy_data)
 
 ## `full_tidy_data`
 
