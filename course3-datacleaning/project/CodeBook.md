@@ -114,4 +114,4 @@ The set of variables that were estimated from these signals are:
 
 * `subject_id`: (integer) the ID number of the experimental subject
 * `activity`: (factor) name of the activity being performed (options include: "LAYING", "SITTING", "STANDING", "WALKING", "WALKING\_DOWNSTAIRS", "WALKING\_UPSTAIRS")
-* the mean of all the other variables listed in the [`full_tidy_data` variables](#full-tidy-data), for each activity and each participant (66 variables in total)
+* the mean of all the other variables listed in the [`full_tidy_data` variables](#`full-tidy-data`), for each activity and each participant (66 variables in total)
