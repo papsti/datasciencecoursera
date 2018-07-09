@@ -58,7 +58,7 @@ aggregate_data <- function(data_type){
   ## data_type: (string) keyword denoting whether data to aggregate
   ## is from the training ("train") or testing ("test") set.
 
-  ## RETURN a data frame in the following form
+  ## Return a data frame in the following form
   ## subject_id activity  measurement1-mean()-X measurement1-std()-X ...
   ##          1 STANDING              0.2885845           -0.9952786
   ##          1 STANDING              0.2784188           -0.9982453
@@ -88,7 +88,8 @@ aggregate_data <- function(data_type){
                          col_names = "activity")
   
   ## Replace activity numbers with easy to read labels from the
-  ## activity_labels lookup table
+  ## activity_labels lookup table (formatted to lowercase and with
+  ## quotation marks removed and as factors)
   tidy_labels <- tolower(activity_labels$name[match(unlist(activity),
                                               activity_labels$id)])
   tidy_labels <- sub('\"', '', tidy_labels)
@@ -144,7 +145,7 @@ full_tidy_data <- rbind(training_data,testing_data)
 ## Get tidy feature column names
 feature_cols <- tidy_feature_colnames(get_feature_colnames())
 
-## Generate list of mean_commands from list of feature cols
+## Generate list of mean commands from list of feature cols
 mean_commands <- lapply(feature_cols, function(feat){
   paste0("MEAN_", feat, "=mean(", feat,", na.rm=TRUE)")
 })
