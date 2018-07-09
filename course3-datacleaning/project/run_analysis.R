@@ -89,8 +89,10 @@ aggregate_data <- function(data_type){
   
   ## Replace activity numbers with easy to read labels from the
   ## activity_labels lookup table
-  activity[] <- as.factor(activity_labels$name[match(unlist(activity),
-                                               activity_labels$id)])
+  tidy_labels <- tolower(activity_labels$name[match(unlist(activity),
+                                              activity_labels$id)])
+  tidy_labels <- sub('\"', '', tidy_labels)
+  activity[] <- as.factor(tidy_labels)
   
   ## 3. FEATURES (MEASUREMENTS)
   
@@ -168,6 +170,8 @@ eval(parse(text=summarize_command))
 
 ## List everyhting in workspace
 rm_names <- ls()
+
+## Remove all objects except full tidy data and mean tidy data
 rm_names <- rm_names[-which(rm_names=="full_tidy_data"|
                               rm_names=="mean_tidy_data")]
 rm(list=c(rm_names))
