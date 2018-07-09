@@ -15,7 +15,3 @@ system(paste0("unzip ", filename))
 ## Reorganize files
 system("mv UCI\\ HAR\\ Dataset data")
 system(paste("rm", filename))
-
-## Make required files
-system("touch CodeBook.md")
-system("touch README.md")
