@@ -11,7 +11,7 @@
 `full_tidy_data` is a `data.frame` object with 10299 observations of 68 variables, including:
 
 * `subject_id`: (integer) the ID number of the experimental subject
-* `activity`: (factor) name of the activity being performed (options include: "LAYING", "SITTING", "STANDING", "WALKING", "WALKING\_DOWNSTAIRS", "WALKING\_UPSTAIRS")
+* `activity`: (factor) name of the activity being performed (options include: laying, sitting, standing, walking, walking\_downstairs, walking\_upstairs)
 
 * `tBodyAcc_mean_X`: (numeric) mean of the time domain body acceleration signal in the X direction
 * `tBodyAcc_std_X`: (numeric) standard deviation of the time domain body acceleration signal in the X direction
@@ -113,5 +113,5 @@ The set of variables that were estimated from these signals are:
 `mean_tidy_data` is a `data.frame` object with 180 observations of 68 variables, including:
 
 * `subject_id`: (integer) the ID number of the experimental subject
-* `activity`: (factor) name of the activity being performed (options include: "LAYING", "SITTING", "STANDING", "WALKING", "WALKING\_DOWNSTAIRS", "WALKING\_UPSTAIRS")
+* `activity`: (factor) name of the activity being performed (options include: laying, sitting, standing, walking, walking\_downstairs, walking\_upstairs)
 * the mean of all the other variables listed for the  [`full_tidy_data`](#full_tidy_data) data frame, for each activity and each participant (66 variables in total)
