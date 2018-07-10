@@ -32,7 +32,7 @@ p <- ggplot(coalcomb, aes(x = year, y = emissions)) +
   geom_point() +
   geom_smooth(method = "lm", se = FALSE) +
   labs(title = "Total emissions of PM2.5",
-       subtitle = "(coal sources)",
+       subtitle = "(coal combustion sources)",
        x = "Year",
        y = "Emissions (tons)") +
   theme(title = element_text(size = 16),
