@@ -37,7 +37,12 @@ p <- ggplot(baltimore, aes(x = year, y = emissions)) +
   labs(title = "Total emissions of PM2.5 (Baltimore City)",
        x = "Year",
        y = "Emissions (tons)",
-       col = "Source Type")
+       col = "Source Type") +
+  theme(title = element_text(size = 16),
+        axis.title = element_text(size = 14),
+        legend.title = element_text(size = 14),
+        axis.text = element_text(size = 12),
+        legend.text = element_text(size = 12))
 
 plot(p)
 
