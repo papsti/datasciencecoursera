@@ -11,7 +11,6 @@
 ## Load packages
 library(dplyr)
 library(ggplot2)
-library(tools)
 
 ## Read data
 nei <- readRDS("data/summarySCC_PM25.rds")
@@ -25,6 +24,9 @@ baltimore <- nei %>%
   subset(fips == "24510") %>%
   group_by(type, year) %>%
   summarise(emissions = sum(emissions))
+
+## Convert source types to lowercase
+baltimore$type <- tolower(baltimore$type)
 
 ## Set up png device
 png("plot3.png",
