@@ -7,6 +7,10 @@
 ## California (fips == "06037"). Which city has seen greater changes
 ## over time in motor vehicle emissions?
 
+## Load packages
+library(dplyr)
+library(ggplot2)
+
 ## Read data
 nei <- readRDS("data/summarySCC_PM25.rds")
 scc <- readRDS("data/Source_Classification_Code.rds")
