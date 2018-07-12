@@ -1,0 +1,32 @@
+---
+title: Exploring Extreme Weather in the United States
+subtitle: "Reproducible Research: Course Project 2"
+author: Irena Papst
+output: 
+  html_document:
+#    keep_md: true
+---
+
+<!-- ADD A MORE DESCRIPTIVE TITLE -->
+
+# Synopsis
+
+# Loading and processing the data
+
+We begin by downloading and unpacking the [U.S. National Oceanic and Atmospheric Administration's (NOAA) storm data](https://www.ncdc.noaa.gov/stormevents/).
+
+```{r loading_data}
+## Make data directory (if it doesn't already exist)
+datadir <- "data"
+if (!file.exists(datadir)){
+  system("mkdir data")
+}
+
+## Download data (if it hasn't already been downloaded)
+datafile <- "stormdata.csv"
+url <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2"
+
+if(!file.exists(datafile)){
+  download.file(url, paste0(datadir, "/", datafile))
+}
+```
