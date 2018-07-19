@@ -1,5 +1,5 @@
 ---
-title: Effects of storm events on health and the economy in the US
+title: Effects of storm events on health and economy in the US
 subtitle: "Reproducible Research: Course Project 2"
 author: Irena Papst
 output: 

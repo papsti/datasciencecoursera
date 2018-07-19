@@ -1,0 +1,10 @@
+name: Publish Document
+title:
+username:
+account: rpubs
+server: rpubs.com
+hostUrl: rpubs.com
+appId: https://api.rpubs.com/api/v1/document/405650/3ce0903c4b634563b4b13d5521411b75
+bundleId: https://api.rpubs.com/api/v1/document/405650/3ce0903c4b634563b4b13d5521411b75
+url: http://rpubs.com/papsti/405650
+when: 1531971869.32232
