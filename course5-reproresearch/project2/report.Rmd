@@ -1,5 +1,5 @@
 ---
-title: Exploring the effects of extreme weather events on population health and the economy in the United States
+title: Effects of storm events on health and the economy in the US
 subtitle: "Reproducible Research: Course Project 2"
 author: Irena Papst
 output: 
