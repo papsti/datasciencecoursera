@@ -1,32 +1,423 @@
 ---
-title: Exploring Extreme Weather in the United States
+title: Exploring the effects of extreme weather events on population health and the economy in the United States
 subtitle: "Reproducible Research: Course Project 2"
 author: Irena Papst
 output: 
-  html_document:
-#    keep_md: true
+  html_document
 ---
-
-<!-- ADD A MORE DESCRIPTIVE TITLE -->
 
 # Synopsis
 
-# Loading and processing the data
+We explore the effects of storm events on both population health and the economy in the United States using the [U.S. National Oceanic and Atmospheric Administration](http://www.noaa.gov/)’s (NOAA) [storm data](https://www.ncdc.noaa.gov/stormevents/). By analyzing the total number of injuries and fatalities caused by various storm events recorded in this database, we conclude that **tornadoes** are the most hazardous to human health. With respect to economic costs, **floods** have historically caused the most property damage (measured in dollars), while **droughts** have caused the most damage to crops (also measured in dollars).
 
-We begin by downloading and unpacking the [U.S. National Oceanic and Atmospheric Administration's (NOAA) storm data](https://www.ncdc.noaa.gov/stormevents/).
+```{r global_opts, echo = FALSE}
+library(knitr)
+opts_chunk$set(cache = FALSE)
+```
 
-```{r loading_data}
+# Setup
+
+## Packages
+
+We start by loading required packages for this work:
+
+```{r load_packages, results = 'hide'}
+## For dates and time
+library(lubridate)
+
+## For strings
+library(stringr)
+
+## For tidying data
+library(tidyverse)
+
+## For percentages in pie chart
+library(scales)
+```
+
+## Architecture and software
+
+This analysis was performed using the following computer architecture and software:
+
+```{r architechture_software, cache = TRUE}
+## Function to print terminal output
+print_term <- function(cmd){
+  ## cmd: (string) terminal command we want to print the output of
+  cat(system(cmd, intern = TRUE), sep = '\n')
+}
+
+## Print CPU info
+print_term('system_profiler | grep Processor')
+
+## Print OS info
+print_term('sw_vers')
+
+## Print R info
+print(sessionInfo())
+```
+
+# Data processing
+
+We begin by downloading and unpacking the [NOAA storm data](https://www.ncdc.noaa.gov/stormevents/).
+
+```{r download_data}
 ## Make data directory (if it doesn't already exist)
 datadir <- "data"
 if (!file.exists(datadir)){
   system("mkdir data")
 }
 
-## Download data (if it hasn't already been downloaded)
+## Download and unzip data (if it hasn't already been downloaded)
 datafile <- "stormdata.csv"
-url <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2"
+datapath <- paste0(datadir, "/", datafile)
 
-if(!file.exists(datafile)){
-  download.file(url, paste0(datadir, "/", datafile))
+if(!file.exists(datapath)){
+  url <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2"
+  download.file(url, paste0(datapath, ".bz2"))
+  
+  ## Unzip the file 
+  system(paste0("bzip2 -d ", datapath, ".bz2"))
 }
 ```
+
+We load the raw data and cache it since the file is rather large.
+
+```{r loading_data, cache = TRUE}
+## Load the data
+rawdata <- read.csv(datapath, stringsAsFactors = FALSE)
+```
+
+Next, we change the variable names to lower case, making them easier to type, and extract the variables we're interested in. We also rename the `evtype` variable to `event_type`, to make it more descriptive for the summary tables that we will output later.
+
+```{r subset_data}
+## Create copy of rawdata
+data <- rawdata
+
+## Convert column names to lowercase
+colnames(data) <- tolower(colnames(data))
+
+## Pull out columns of interest
+cols <- c("evtype",
+          "fatalities", "injuries",
+          "propdmg", "propdmgexp",
+          "cropdmg", "cropdmgexp")
+data <- data[,cols]
+
+## Rename evtype variable to be more readible
+colnames(data)[1] <- "event_type"
+```
+
+Next, we change the cases of some columns and convert some columns to categorical variables:
+
+* convert the property/crop damage magnitude suffixes to upper case so that we don't miss any values accidentally entered in lower case;
+* convert the event types to lower case to match up values that were inconsistently entered;
+* convert the property/crop damage magnitude suffixes to `factor` variables.
+
+```{r formatting_data}
+## Convert magnitude suffixes to uppercase
+data$propdmgexp <- toupper(data$propdmgexp)
+data$cropdmgexp <- toupper(data$cropdmgexp)
+
+## Convert event types to lowercase
+data$event_type <- tolower(data$event_type)
+
+## Define some columns as factors
+cols <- c("propdmgexp", "cropdmgexp")
+data[cols] <- lapply(data[cols], factor)
+```
+
+If we take a look at all the different event types, we see that there are many different categories that could be compressed into one. For example:
+
+```{r multi_events}
+events <- unique(data$event_type)
+grep("tornado", events, value = TRUE)
+```
+
+We will attempt to resolve most of these data entry inconsistencies by consulting the official storm data event table in the [NOAA documentation](https://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2Fpd01016005curr.pdf) and replacing duplicate labels with a unified one from the table.
+
+```{r event_cat_replacement}
+## List of events from the storm data event table
+event_list <- c("astronomical low tide", "avalanche",
+                "blizzard", "coastal flood", "cold/wind chill",
+                "debris flow", "dense fog", "dense smoke",
+                "drought", "dust devil", "dust storm",
+                "excessive heat", "extreme cold/wind chill",
+                "flash flood", "flood", "frost/freeze",
+                "funnel cloud", "freezing fog", "hail", "heat",
+                "heavy rain", "heavy snow", "high surf", "high wind",
+                "hurricane (typhoon)", "ice storm",
+                "lake-effect snow", "lakeshore flood", "lightning",
+                "marine hail", "marine high wind",
+                "marine strong wind", "marine thunderstorm wind",
+                "rip current", "seiche", "sleet", "storm surge/tide",
+                "strong wind", "thunderstorm wind", "tornado",
+                "tropical depression", "tropical storm", "tsunami",
+                "volcanic ash", "waterspout", "wildfire",
+                "winter storm", "winter weather")
+
+## List of regex for each event
+regex_list <- c("astronomical low tide", "avalanche",
+                "blizzard", "coastal flood", "cold/wind chill",
+                "debris flow", "dense fog", "dense smoke",
+                "drought", "dust devil", "dust storm",
+                "excessive heat", "extreme cold/wind chill",
+                "flash flood", "flood", "frost/freeze",
+                "funnel cloud", "freezing fog", "hail", "heat",
+                "heavy rain", "heavy snow", "high surf", "high wind",
+                "hurricane|typhoon", "ice storm",
+                "lake-effect snow", "lakeshore flood", "lightning",
+                "marine hail", "marine high wind",
+                "marine strong wind", "marine thunderstorm wind",
+                "rip current", "seiche", "sleet", "storm surge/tide",
+                "strong wind", "thunderstorm wind", "tornado",
+                "tropical depression", "tropical storm", "tsunami",
+                "volcanic ash", "waterspout", "wildfire",
+                "winter storm", "winter weather")
+
+## Replace duplicate event labels with a unified one
+for (i in seq_along(event_list)){
+  indx <- grep(regex_list[i], data$event_type)
+  data$event_type[indx] <- event_list[i]
+}
+
+## Make event_type a factor variable
+data$event_type <- factor(data$event_type)
+```
+
+# Results
+
+## Effects on population health
+
+To begin, we asses which types of storm events are most harmful with respect to population health. Population health can be measured by the total number of fatalities and/or injuries reported as a result of each event type. The most harmful event will incur the most fatalities and/or injuries. Since there are `r length(levels(data$event_type))` event types in this data (after processing), we will only display the top five event types in each category of health outcome.
+
+### Top 5 events leading to the most injuries
+
+```{r most_injuries}
+## Calculate the sum of all injuries for each event type
+most_injuries <- data %>%
+  group_by(event_type) %>%
+  summarize(total_injuries = sum(injuries)) %>%
+  arrange(desc(total_injuries))
+
+## Print the top 5
+print(head(most_injuries, n=5))
+``` 
+
+### Top 5 events leading to the most fatalities
+
+```{r most_fatalities}
+## Calculate the sum of all fatalities for each event type
+most_fatalities <- data %>%
+  group_by(event_type) %>%
+  summarize(total_fatalities = sum(fatalities)) %>%
+  arrange(desc(total_fatalities))
+
+## Print the top 5
+print(head(most_fatalities, n=5))
+``` 
+
+### Top 5 events leading to the most injuries and fatalities combined
+
+```{r most_injuries_fatalities}
+## Calculate the sum of all injuries and fatalities for each event type
+most_injuries_fatalities <- data %>%
+  group_by(event_type) %>%
+  summarize(total_injuries_fatalities = sum(injuries) + sum(fatalities)) %>%
+  arrange(desc(total_injuries_fatalities))
+
+## Print the top 5
+print(head(most_injuries_fatalities, n=5))
+``` 
+
+These results unilaterally suggest that **tornados** are the most hazardous to human health.
+
+To understand the share of each event type relative to all recorded injury and fatality figures, we plot a pie chart of the top five most harmful events, compressing all other events into an "other" category.
+
+```{r health_plot, fig.cap="**Figure:** *The share of combined injuries and fatalities for each of the most dangerous storm event types based on the total morbidity and mortality recorded.*"}
+## Reformat data from combined injuries and fatalities to
+## compress all events except for the top 5 into an "other"
+## category
+health_plot_data <- most_injuries_fatalities %>%
+  mutate(category = ifelse(event_type %in% event_type[1:5], levels(event_type)[event_type], "other"))
+
+health_plot_data$category <- factor(health_plot_data$category)
+
+## Calculate percentage of all combined injuries and fatalities for each category
+all_injuries_fatalities <- sum(health_plot_data$total_injuries_fatalities)
+health_plot_data <- health_plot_data %>%
+  group_by(category) %>%
+  summarize(proportion = sum(total_injuries_fatalities)/all_injuries_fatalities) %>%
+  arrange(desc(proportion))
+
+## Rearrange category levels in descending order by proportion and
+## then place "other" category at the end of the factor levels for the
+## category label so it gets plotted last
+cat_labels_order <- as.character(health_plot_data$category)
+cat_levels <- c(cat_labels_order[-which(cat_labels_order=="other")], "other")
+health_plot_data$category <- factor(health_plot_data$category, levels = cat_levels)
+
+## Move "other" category to the last row of health_plot_data (to match order of levels now)
+indx <- as.character(health_plot_data$category) %in% c("other")
+health_plot_data <- rbind(health_plot_data[!indx,], health_plot_data[indx,])
+
+## Define blank theme for pie chart
+blank_theme <- theme_minimal()+
+  theme(
+  axis.title.x = element_blank(),
+  axis.title.y = element_blank(),
+  panel.border = element_blank(),
+  panel.grid=element_blank(),
+  axis.ticks = element_blank(),
+  axis.text.x=element_blank()
+  )
+
+## Create pie chart
+pie <- ggplot(data = health_plot_data,
+            mapping = aes(x = "", y = proportion, fill = category)) +
+  geom_col(width = 1) +
+  blank_theme + 
+  geom_text(aes(x = c(rep(1.25, 5), 1),
+                y = cumsum(rev(proportion)) - rev(proportion)/2, 
+                label = rev(percent(proportion))),
+            size=c(4, rep(3,2), rep(4,2), 5)) +
+  labs(x = "",
+       title = "Proportion of total injuries and fatalities combined",
+       fill = "Storm Event") + 
+  coord_polar("y", start=0) + # convert col to pie
+  NULL
+
+print(pie)
+```
+
+From this plot, we see clearly that **tornadoes** contribute overwhelmingly to the combined number of injuries and fatalities from storm events in the US, based on these data.
+
+## Economic impact
+
+To asses which types of storm events have the greatest economic consequences, we can use the property and crop damage estimates (in dollars) from the NOAA database. These values are (supposed to be)[^1] stored as three significant digits followed by a suffix: "K" for thousand, "M" for million, and "B" for billion. The events with the greatest economic impact will result in the largest property and/or crop damage estimates. Again, we display the top five most damaging event types in each category.
+
+[^1]: There are data entry errors here as well, with some suffixes mysteriously entered as numeric values and punctuation. These are not included in our results as it is impossible to tell what the intended suffix was at data entry.
+
+### Top 5 events leading to the most property damage
+
+```{r most_propdmg}
+## Calculate the sum of all property damage for each event type
+most_propdmg <- data %>%
+  filter(propdmgexp %in% c("B", "M", "K")) %>%
+  mutate(propdmg_full = ifelse(propdmgexp == "B", propdmg*1e9,
+                               ifelse(propdmgexp == "M", propdmg*1e6,
+                                      ifelse(propdmgexp =="K", propdmg*1e3, NA)))) %>%
+  group_by(event_type) %>%
+  summarise(total_propdmg = sum(propdmg_full)) %>%
+  arrange(desc(total_propdmg))
+
+## Print the top 5
+print(head(most_propdmg, n=5))
+``` 
+
+### Top 5 events leading to the most crop damage
+
+```{r most_cropdmg}
+## Calculate the sum of all property damage for each event type
+most_cropdmg <- data %>%
+  filter(cropdmgexp %in% c("B", "M", "K")) %>%
+  mutate(cropdmg_full = ifelse(cropdmgexp == "B", cropdmg*1e9,
+                               ifelse(cropdmgexp == "M", cropdmg*1e6,
+                                      ifelse(cropdmgexp =="K", cropdmg*1e3, NA)))) %>%
+  group_by(event_type) %>%
+  summarise(total_cropdmg = sum(cropdmg_full)) %>%
+  arrange(desc(total_cropdmg))
+
+## Print the top 5
+print(head(most_cropdmg, n=5))
+``` 
+
+### Top 5 events leading to the most combined property and crop damage
+
+```{r most_propcropdmg}
+## Calculate the sum of all crop damage for each event type
+most_propcropdmg <- data %>%
+  filter(propdmgexp %in% c("B", "M", "K")) %>%
+  mutate(propdmg_full = ifelse(propdmgexp == "B", propdmg*1e9,
+                               ifelse(propdmgexp == "M", propdmg*1e6,
+                                      ifelse(propdmgexp =="K", propdmg*1e3, NA)))) %>%
+  filter(cropdmgexp %in% c("B", "M", "K")) %>%
+  mutate(cropdmg_full = ifelse(cropdmgexp == "B", cropdmg*1e9,
+                               ifelse(cropdmgexp == "M", cropdmg*1e6,
+                                      ifelse(cropdmgexp =="K", cropdmg*1e3, NA)))) %>%
+  group_by(event_type) %>%
+  summarise(total_propcropdmg = sum(propdmg_full + cropdmg_full)) %>%
+  arrange(desc(total_propcropdmg))
+
+## Print the top 5
+print(head(most_propcropdmg, n=5))
+``` 
+
+Based on the above results, **floods** are the most harmful with respect to property damage, as well as property and crop damage combined, while **droughts** are the most harmful with respect to crop damage. 
+
+To understand the share of each event type relative to all recorded property and crop damage amounts, we plot a pie chart of the top five most damaging events, compressing all other events into an "other" category.
+
+```{r econ_plot, fig.cap="**Figure:** *The share of combined property and crop damage amounts for each of the most damaging storm event types based on the total economic costs recorded.*"}
+## Reformat data from combined property and crop damage amounts to
+## compress all events except for the top 5 into an "other"
+## category
+econ_plot_data <- most_propcropdmg %>%
+  mutate(category = ifelse(event_type %in% event_type[1:5], levels(event_type)[event_type], "other"))
+
+econ_plot_data$category <- factor(econ_plot_data$category)
+
+## Calculate percentage of all combined property and crop damage
+## values for each category
+all_propcropdmg <- sum(econ_plot_data$total_propcropdmg)
+econ_plot_data <- econ_plot_data %>%
+  group_by(category) %>%
+  summarize(proportion = sum(total_propcropdmg)/all_propcropdmg) %>%
+  arrange(desc(proportion))
+
+## Rearrange category levels in descending order by proportion and
+## then place "other" category at the end of the factor levels for the
+## category label so it gets plotted last
+cat_labels_order <- as.character(econ_plot_data$category)
+cat_levels <- c(cat_labels_order[-which(cat_labels_order=="other")], "other")
+econ_plot_data$category <- factor(econ_plot_data$category, levels = cat_levels)
+
+## Move "other" category to the last row of econ_plot_data (to match order of levels now)
+indx <- as.character(econ_plot_data$category) %in% c("other")
+econ_plot_data <- rbind(econ_plot_data[!indx,], econ_plot_data[indx,])
+
+## Create pie chart
+pie <- ggplot(data = econ_plot_data,
+            mapping = aes(x = "", y = proportion, fill = category)) +
+  geom_col(width = 1) +
+  blank_theme + 
+  geom_text(aes(x = c(rep(1.25, 5), 1),
+                y = cumsum(rev(proportion)) - rev(proportion)/2, 
+                label = rev(percent(proportion))),
+            size=c(4, 2, 3, rep(4,2), 5)) +
+  labs(x = "",
+       title = "Proportion of total property and crop damage combined",
+       fill = "Storm Event") + 
+  coord_polar("y", start=0) + # convert col to pie
+  NULL
+
+print(pie)
+```
+
+# Conclusion
+
+The above analysis indicates that on the whole, **tornadoes** are the most harmful to population health, while **floods** and **droughts** are the most economically costly with respect to property and crop damage, respectively. 
+
+# Future work
+
+## Data processing
+
+The way in which we resolved data entry inconsistencies (by consulting the official storm data event table and using it to replace duplicate labels) does not allow for categories that share words to remain distinct (e.g. observations from "cold/wind chill" and "extreme cold/wind chill" become part of the same category); a more sophisticated find-and-replace scheme should be used if one wishes to keep these types of categories distinct.
+
+There are also spelling errors in the event types that need to be resolved to ensure that all of the observations are correctly classified.
+
+## Analysis
+
+Some storm events occur more frequently than others, so we may want to normalize outcome measures by the event frequency as a different way to gauge the degree to which each event type is dangerous or economically costly.
+
+It may also be illuminating to perform a time series analysis of the effects of different storm events on population health and the economy, in case patterns have changed recently.
+
+Lastly, it may be also be beneficial to break the above analysis down by state to infer the the most dangerous and costly events within each state.
