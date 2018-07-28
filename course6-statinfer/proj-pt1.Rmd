@@ -41,45 +41,40 @@ n_sim <- 1000
 
 ## Simulate draws and calculate sample means and variances
 x <- replicate(n_sim, rexp(n_draw, lambda), simplify = FALSE)
-xbar <- map_dbl(x, mean)
+sample_means <- map_dbl(x, mean)
 s2 <- map_dbl(x, var)
 
 ```
 
 # Sample means vs. theoretical mean
 
-The theoretical mean of this exponential distribution is $\mu = 1/\lambda = 1/0.2 = 5$, so we expect our simulated sample means to be close to this value.
+The theoretical mean of this exponential distribution is $\mu = 1/\lambda = 1/0.2 = 5$, so we expect the mean of our simulated sample means (*i.e.* the empirical mean) to be close to this value.
 
-We calculate and plot a histogram of the relative difference between our theoretical mean and our 1000 sample means ($(\mu - \bar{X_i})/\mu$ for $i = 1, 2, ..., 1000$).
+We calculate and display both the theoretical and empirical means.
 
-```{r diff_means}
-## Set theoretical mean
+```{r compare_means}
+## Calculate theoretical mean
 mu <- 1/lambda
 
-## Calculate relative differences in means from mu (compared to mu)
-diff_means <- data.frame(diffs = (xbar-mu)/mu)
+## Calculate mean of sample means
+xbar <- mean(sample_means)
 
-## Set histogram parameters
-n_bins <- 25
-fill <- "grey60"
-
-## Plot histogram of differences
-p <- ggplot(data = diff_means,
-            mapping = aes(x = diffs)) +
-  geom_histogram(bins = n_bins,
-                 fill = fill) +
-  labs(x = "$(\\mu - \\bar{x})/\\mu$",
-       y = "Count",
-       title = "Relative difference of sample means",
-       subtitle = "(compared to the theoretical mean)") +
-  geom_vline(xintercept = 0,
-             colour = "dodgerblue", size = 1.2)
-
-print(p)
-
+## Print results
+print(paste0("Theoretical mean: ", mu))
+print(paste0("Empirical mean: ", round(xbar,2)))
 ```
 
-We can see that the relative difference between the sample means and the theoretical mean accumulate around zero, *i.e.* the sample means accumulate around the theoretical mean. Moreover, the majority of sample means are within 25% of the theoretical mean, so we can say that our sample means are close to the theoretically predicted value.
+While it is pretty clear that the empirical mean, $\bar{X}$, is close to the theoretical mean, $\mu$, we can quantify how close these two values are by calculating the relative difference between the empirical and theoretical means, $(\bar{X}-\mu)/\mu$.
+
+```{r rel_diff_means}
+## Calculate relative difference
+rel_diff <- (xbar-mu)/mu
+
+## Print results
+print(paste0("Relative difference: ", round(rel_diff, 5)))
+```
+
+This relative difference indicates that the empirical mean is only 0.389% smaller than the sample mean: a very small difference.
 
 ## Sample variances vs. theoretical variance
 
@@ -87,9 +82,12 @@ The theoretical variance this exponential distribution is also $\sigma^2 = 1/\la
 
 We calculate and plot a histogram of the relative difference between our theoretical variance and our 1000 sample variances ($(\sigma^2 - s^2_i)/\sigma^2$ for $i = 1, 2, ..., 1000$).
 
-```{r diff_vars}
-## Set theoretical mean
+``` {r compare_vars}
+## Set theoretical variance
 sigma2 <- 1/lambda^2
+```
+
+```{r diff_vars, eval = F}
 
 ## Calculate relative differences in means from mu (compared to mu)
 diff_vars <- data.frame(diffs = (s2-sigma2)/sigma2)
@@ -120,12 +118,16 @@ To illustrate this point, we plot this histogram of sample means and overlay a n
 
 ```{r dist}
 ## Convert sample mean data to a data frame
-data <- data.frame(xbar = xbar)
+data <- data.frame(sample_means = sample_means)
 
-## Plot histogram of xbar with CLT predicted
+## Set histogram parameters
+n_bins <- 25
+fill <- "grey60"
+
+## Plot histogram of sample means with CLT predicted
 ## normal distribution overtop
 p <- ggplot(data = data,
-            mapping = aes(x = xbar)) +
+            mapping = aes(x = sample_means)) +
   geom_histogram(aes(y=..density..),
                  bins = n_bins,
                  fill = fill) + 
