@@ -1,0 +1,149 @@
+---
+title: "Statistical Inference Course Project"
+subtitle: "Part 2: Basic Inferential Data Analysis"
+author: Irena Papst
+header-includes:
+   - \usepackage{varwidth}
+output:
+  pdf_document
+fontsize: 12 pt
+bibliography: proj-pt2.bib
+---
+  
+```{r opts, echo = FALSE}
+## Set default knitr chunk options
+knitr::opts_chunk$set(dev = 'tikz',
+                      tidy = TRUE,
+                      tidy.opts=list(width.cutoff=40),
+                      fig.height = 3,
+                      cache = TRUE)
+
+```
+
+# Overview
+
+We explore the `ToothGrowth` dataset, which addresses the effect of vitamin C on tooth growth in guinea pigs.
+
+# Data
+
+``` {r load_libraries, message = FALSE}
+library(tidyverse)
+```
+
+```{r load_data}
+## Load data
+library(datasets)
+data <- ToothGrowth
+
+## Display summary of data
+str(data)
+```
+
+The data includes 60 observations of 3 variables:
+
+* `len`: length of odontoblasts (cells responsible for tooth growth);
+* `supp`: supplement type, either:
+    * `VC`: ascorbic acid;
+    * `OJ`: orange juice;
+* `dose`: dose in milligrams per day (0.5, 1, or 2).
+
+The length of ondontoblasts is the response variable, and the supplement and dose variables denote the treatment received by each animal.
+
+We convert the `dose` variable to a categorical (instead of numerical) variable, since we will want to group individual observations by both supplement type and dose. Then we group the data by supplement type, and then by dose, so that we may examine the effect of each of these treatments on cell length.
+
+```{r clean_data}
+## Convert dose to factor variable
+data$dose <- as.factor(data$dose)
+
+## Group data by supplement, then by dose
+data <- data %>%
+  group_by(supp, dose)
+```
+
+We check whether any observations are missing data, and then present the sample sizes of each category (grouped by supplement type and dose).
+
+```{r summarize_data}
+## Check for missing values
+n_missing <- sum(!(complete.cases(data)))
+print(paste0("Number of observations missing data: ", n_missing))
+
+## Display sample sizes
+data %>%
+  summarise(sample_size = n())
+```
+
+# Exploratory analysis
+
+## Preliminary question
+
+Based on the contents of this data, it would be interesting to test whether either supplement type or dose affect the length of odontoblasts. 
+
+Note that since there is no control group included in this data, we cannot explore whether either supplement/dose can significantly change the length of these cells from baseline, but we can at least test whether there are any significant differences in cell length among the supplements (or doses).
+
+Based on this reasoning, we can pose a preliminary analysis question to explore:
+
+\begin{center}
+\fbox{
+\begin{varwidth}{\textwidth}
+\centering \large
+\textbf{Question 1:} Are there significant differences in cell length \\ among the different supplements and doses tested?
+\end{varwidth}
+}
+\end{center}
+
+## Box and whiskers plot
+
+Since there is no missing data and the sample size for each category is equal, we can safely compare cell length among groups with no further adjustments.
+
+We start with a basic box plot to get a sense of any potential differences among treatment categories.
+
+```{r boxplot}
+## Add combined factor variable for both supplement and dose
+data <- data %>%
+  unite(cat, supp, dose,
+        sep = "-", remove = FALSE)
+
+data$cat <- as.factor(data$cat)
+
+## Define custom colour pallettes
+col_pallette <- c("orange1", "violetred1")
+fill_pallette <- c("grey80", "grey65", "grey50")
+
+## Make boxplot
+p <- ggplot(data, aes(x = cat, y = len,
+                      col = supp, fill = dose)) +
+  geom_boxplot() +
+  ## Use custom colour palettes
+  scale_colour_manual(values = col_pallette) +
+  scale_fill_manual(values = fill_pallette) +
+  ## Add annotations
+  labs(x = "Category (Supplement-Dose)",
+       y = "Cell length")
+
+print(p)
+```
+
+This box plot shows the median of the data within each category (the horizontal line in each box), as well as the $25^{\rm th}$ and  $75^{\rm th}$ percentiles (the bottom and top edges of the box, respectively). The whiskers (vertical lines extending from the boxes) span the range of the remaining data beyond the $25^{\rm th}$ and  $75^{\rm th}$ percentiles, with the exeption of outliers (plotted individually as points).
+
+Comparing orange juice (OJ) and ascorbic acid (VC) as delivery methods for vitamin C, it seems that there is not a significant difference between the two supplement types. There does, however, seem to be a trend in the dosage level; it appears that as dosage increases, so does cell length (independent of supplement). However, we should test this assertion more formally to quantify whether this trend is statistically significant.
+
+## T-tests 
+
+We perform pairwise T-tests among the 6 different categories of treatment (2 supplements, 3 dosage levels) to test more rigorously whether there are significant differences among groups.
+
+The assumptions of these tests are:
+1. the population was sampled randomly;
+1. the observations are independent;
+1. the population is approximately normally distributed. 
+
+Details of data collection can be found in [@cramp47]. There is nothing in this study to indicate that any of the above assumptions were violated, so we proceed with the T-tests.
+
+The null hypothesis for these tests is that the population means are equal between any given groups. The alternative hypothesis is that the population means are not equal, and so we use a *two-sided* test. Moreover, each observation comes from a different guinea pig, so we use an *unpaired* test.
+
+Since we are performing a number of pairwise tests, we must adjust our p values to correct for multiple comparisons. We will use the Bonferorni correction, which is rather strict.
+
+# Appendix A: Session Info
+
+```{r sys_info}
+sessionInfo()  
+```
