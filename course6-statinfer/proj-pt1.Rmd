@@ -26,7 +26,7 @@ library(ggplot2)
 
 We investigate the Central Limit Theorem (CLT), which essentially states that a distribution of sample means (calculated from different samples of the same population) tends toward a normal distribution as the number of sample means collected tends to infinity. What is remarkable about this theorem is that it holds even when the observations sampled are *not* normally distributed themselves. In fact, we will simulate draws from an *exponential* distribution to illustrate the CLT.
 
-# Simulating draws from the exponential distribution
+# Simulating draws from an exponential distribution
 
 We sample 40 observations from an exponential distribution with $\lambda = 0.2$ and then take the sample means and variances. We repeat this process 1000 times.
 
@@ -61,10 +61,11 @@ xbar <- mean(sample_means)
 
 ## Print results
 print(paste0("Theoretical mean: ", mu))
-print(paste0("Empirical mean: ", round(xbar,2)))
+print(paste0("Empirical mean: ", round(xbar,3)))
+
 ```
 
-While it is pretty clear that the empirical mean, $\bar{X}$, is close to the theoretical mean, $\mu$, we can quantify how close these two values are by calculating the relative difference between the empirical and theoretical means, $(\bar{X}-\mu)/\mu$.
+To fully convince ourselves that the empirical mean, $\bar{X}$, is close to the theoretical mean, $\mu$, we can quantify just how close these two values are by calculating the relative difference between the empirical and theoretical means, $(\bar{X}-\mu)/\mu$.
 
 ```{r rel_diff_means}
 ## Calculate relative difference
@@ -72,49 +73,48 @@ rel_diff <- (xbar-mu)/mu
 
 ## Print results
 print(paste0("Relative difference: ", round(rel_diff, 5)))
+
 ```
 
-This relative difference indicates that the empirical mean is only 0.389% smaller than the sample mean: a very small difference.
+This relative difference indicates that the empirical mean is only `r abs(round(rel_diff, 5))*100`% smaller than the sample mean: a very small difference.
 
 ## Sample variances vs. theoretical variance
 
-The theoretical variance this exponential distribution is also $\sigma^2 = 1/\lambda = 1/0.2 = 5$, so we expect our simulated sample variances to be close to this value. 
+The variance of this exponential distribution is $\sigma^2 = 1/\lambda = 1/0.2 = 5$, so we expect the variance of our simulated sample means (*i.e.* the empirical variance) to be close to the theoretical variance of $\sigma^2/n = 1/(n\lambda^2)$.
 
-We calculate and plot a histogram of the relative difference between our theoretical variance and our 1000 sample variances ($(\sigma^2 - s^2_i)/\sigma^2$ for $i = 1, 2, ..., 1000$).
+We calculate and display both the theoretical and empirical variances.
 
-``` {r compare_vars}
-## Set theoretical variance
-sigma2 <- 1/lambda^2
-```
+```{r compare_vars}
+## Calculate theoretical variance
+sigma2 <- 1/(n_draw*lambda^2)
 
-```{r diff_vars, eval = F}
+## Calculate variance of sample means
+s2 <- var(sample_means)
 
-## Calculate relative differences in means from mu (compared to mu)
-diff_vars <- data.frame(diffs = (s2-sigma2)/sigma2)
-
-## Plot histogram of differences
-p <- ggplot(data = diff_vars,
-            mapping = aes(x = diffs)) +
-  geom_histogram(bins = n_bins,
-                 fill = fill) +
-  labs(x = "$(\\sigma^2 - s^2)/\\sigma^2$",
-       y = "Count",
-       title = "Relative difference of sample variances",
-       subtitle = "(compared to the theoretical variance)") +
-  geom_vline(xintercept = 0,
-             colour = "dodgerblue", size = 1.2)
-
-print(p)
+## Print results
+print(paste0("Theoretical variance: ", sigma2))
+print(paste0("Empirical variance: ", round(s2,3)))
 
 ```
 
-Again, the relative difference between the sample variances and the theoretical variance accumulate around zero, *i.e.* the sample variances accumulate around the theoretical variance. However, the sample variances vary more from their associated theoretical value than the sample means; the majority of sample variances are within 100% of the theoretical variance. 
+The relative difference between the empirical variance, $s^2$, and theoretical variance is given by $(s^2-\sigma^2/n)/\sigma^2/n$.
+
+```{r rel_diff_vars}
+## Calculate relative difference
+rel_diff <- (s2-sigma2)/sigma2
+
+## Print results
+print(paste0("Relative difference: ", round(rel_diff, 5)))
+
+```
+
+This relative difference indicates that the empirical variance is only `r abs(round(rel_diff, 5))*100`% smaller than the sample variance: again, a small difference.
 
 # Distribution of sample means
 
-According to the Central Limit Theorem, the distribution of sample means should be normal (with mean $\mu$ and variance $\sigma^2/n$) as the number of samples, $n$, goes to infinity. Thus the distribution of sample means for our 40 draws should be *approximately* normal with these parameters.
+According to the CLT, the distribution of sample means should be normal (with mean $\mu$ and variance $\sigma^2/n$) as the number of samples, $n$, goes to infinity. Thus the distribution of sample means for our 40 draws should be *approximately* normal with those parameters.
 
-To illustrate this point, we plot this histogram of sample means and overlay a normal distribution with mean $\mu$ and variance $\sigma^2/40$.
+To illustrate this point, we plot this histogram of sample means and overlay a normal distribution with mean $\mu = 5$ and variance $\sigma^2/n = 5^2/40$.
 
 ```{r dist}
 ## Convert sample mean data to a data frame
@@ -126,32 +126,43 @@ fill <- "grey60"
 
 ## Plot histogram of sample means with CLT predicted
 ## normal distribution overtop
+subtitle <- "(compared with the theoretically predicted normal distribution)"
 p <- ggplot(data = data,
             mapping = aes(x = sample_means)) +
   geom_histogram(aes(y=..density..),
                  bins = n_bins,
                  fill = fill) + 
-  labs(x = "Sample mean, $\\bar{x}$",
+  labs(x = "Sample mean, $\\bar{X}$",
        y = "Density",
        title = "Simulated distribution of sample means",
-       subtitle = "(compared with the theoretically predicted normal distribution)") +
+       subtitle = subtitle) +
   stat_function(fun = dnorm,
-                args = list(mean = mu, sd = sqrt(sigma2/n_draw)),
+                args = list(mean = mu, sd = sqrt(sigma2)),
                 colour = "darkorchid1",
                 size = 1.2) +
-  NULL
+  annotate("text", x = 6, y = 0.4,
+           label = "$N(\\mu, \\sigma^2/n)$",
+           colour = "darkorchid1")
   
 print(p)
 
 ```
 
-We see that the theorically predicted normal distribution matches reasonably well with the simulated distribution, and so we conclude that the simulated distribution is approximately normal.
+We see that the theoretically predicted normal distribution matches quite well with the simulated distribution, and so we conclude that the simulated distribution is approximately normal.
 
 \newpage
 
-# Appendix
+# Appendix A: Code
 
-The following is all the code used to generate the figures in this report.
+The following code was used to generate all of the results presented in this report.
 
-```{r ref.label=knitr::all_labels(), tidy = TRUE, tidy.opts=list(width.cutoff=40), echo = TRUE, eval = FALSE}
+```{r ref.label=knitr::all_labels(), tidy = TRUE, tidy.opts=list(width.cutoff=55), echo = TRUE, eval = FALSE}
+```
+
+\newpage
+
+# Appendix B: Session Info
+
+```{r sys_info}
+sessionInfo()  
 ```
