@@ -170,10 +170,4 @@ According to our t-tests, all of the means are significantly different, except f
 
 Among the two supplements, there seems to be a statistically different dose-response curve, since the means for either supplement at (a) 0.5 mg/day and (b) 1 mg/day are significantly different. If we inspect the boxplot in figure 1, we see that the dose-response curve for orange juice looks sublinear (concave down), while the curve for ascorbic acid looks linear. However, since we could not reject the null hypothesis that the means for both supplement at 2 mg/day were significantly different, it could be the case that both supplements eventually result in the same effect on odontoblast length (at a sufficiently high dosage).
 
-<!-- # Appendix A: Session Info -->
-
-<!-- ```{r sys_info, size = "footnotesize"} -->
-<!-- sessionInfo()   -->
-<!-- ``` -->
-
 # Citations
