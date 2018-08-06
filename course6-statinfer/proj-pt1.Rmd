@@ -10,16 +10,8 @@ fontsize: 12 pt
 ```{r opts_main, echo = FALSE}
 ## Set default knitr chunk options
 knitr::opts_chunk$set(dev = 'tikz',
-                      echo = FALSE,
+                      echo = TRUE,
                       fig.height = 3)
-
-```
-
-```{r libraries}
-## Load necessary libraries
-library(purrr)
-library(ggplot2)
-
 ```
 
 # Overview
@@ -30,6 +22,13 @@ We investigate the Central Limit Theorem (CLT), which essentially states that a 
 
 We sample 40 observations from an exponential distribution with $\lambda = 0.2$ and then take the sample means and variances. We repeat this process 1000 times.
 
+```{r libraries}
+## Load necessary libraries
+library(purrr)
+library(ggplot2)
+library(gridExtra)
+```
+
 ```{r sim}
 ## Set seed for reproducible results
 set.seed(15)
@@ -39,14 +38,15 @@ lambda <- 0.2
 n_draw <- 40
 n_sim <- 1000
 
-## Simulate draws and calculate sample means and variances
+## Simulate draws
 x <- replicate(n_sim, rexp(n_draw, lambda), simplify = FALSE)
+## Calculate sample means
 sample_means <- map_dbl(x, mean)
+## Calculate sample variances
 s2 <- map_dbl(x, var)
-
 ```
 
-# Sample means vs. theoretical mean
+# Empirical vs. theoretical mean
 
 The theoretical mean of this exponential distribution is $\mu = 1/\lambda = 1/0.2 = 5$, so we expect the mean of our simulated sample means (*i.e.* the empirical mean) to be close to this value.
 
@@ -62,7 +62,6 @@ xbar <- mean(sample_means)
 ## Print results
 print(paste0("Theoretical mean: ", mu))
 print(paste0("Empirical mean: ", round(xbar,3)))
-
 ```
 
 To fully convince ourselves that the empirical mean, $\bar{X}$, is close to the theoretical mean, $\mu$, we can quantify just how close these two values are by calculating the relative difference between the empirical and theoretical means, $(\bar{X}-\mu)/\mu$.
@@ -73,12 +72,11 @@ rel_diff <- (xbar-mu)/mu
 
 ## Print results
 print(paste0("Relative difference: ", round(rel_diff, 5)))
-
 ```
 
 This relative difference indicates that the empirical mean is only `r abs(round(rel_diff, 5))*100`% smaller than the sample mean: a very small difference.
 
-## Sample variances vs. theoretical variance
+## Empirical vs. theoretical variance
 
 The variance of this exponential distribution is $\sigma^2 = 1/\lambda = 1/0.2 = 5$, so we expect the variance of our simulated sample means (*i.e.* the empirical variance) to be close to the theoretical variance of $\sigma^2/n = 1/(n\lambda^2)$.
 
@@ -94,7 +92,6 @@ s2 <- var(sample_means)
 ## Print results
 print(paste0("Theoretical variance: ", sigma2))
 print(paste0("Empirical variance: ", round(s2,3)))
-
 ```
 
 The relative difference between the empirical variance, $s^2$, and theoretical variance is given by $(s^2-\sigma^2/n)/\sigma^2/n$.
@@ -105,7 +102,6 @@ rel_diff <- (s2-sigma2)/sigma2
 
 ## Print results
 print(paste0("Relative difference: ", round(rel_diff, 5)))
-
 ```
 
 This relative difference indicates that the empirical variance is only `r abs(round(rel_diff, 5))*100`% smaller than the sample variance: again, a small difference.
@@ -114,9 +110,9 @@ This relative difference indicates that the empirical variance is only `r abs(ro
 
 According to the CLT, the distribution of sample means should be normal (with mean $\mu$ and variance $\sigma^2/n$) as the number of samples, $n$, goes to infinity. Thus the distribution of sample means for our 40 draws should be *approximately* normal with those parameters.
 
-To illustrate this point, we plot this histogram of sample means and overlay a normal distribution with mean $\mu = 5$ and variance $\sigma^2/n = 5^2/40$.
+To illustrate this point, we plot this histogram of sample means and overlay a normal distribution with mean $\mu = 5$ and variance $\sigma^2/n = 5^2/40 = 0.625$ in figure 1.
 
-```{r dist}
+```{r dist, fig.cap="The simulated distribution of 10,000 sample means of 40 exponential random variables with $\\lambda = 0.2$, compared with the normal distribution predicted by the CLT (mean $\\mu = 5$ and variance $\\sigma^2 = 0.625$. The simulated sample mean distribution matches very well with the CLT-predicted normal."}
 ## Convert sample mean data to a data frame
 data <- data.frame(sample_means = sample_means)
 
@@ -145,24 +141,38 @@ p <- ggplot(data = data,
            colour = "darkorchid1")
   
 print(p)
-
 ```
 
 We see that the theoretically predicted normal distribution matches quite well with the simulated distribution, and so we conclude that the simulated distribution is approximately normal.
 
-\newpage
+Note that the distribution of many random exponentials is *not* the same as the distribution of many *sample means* of 40 exponentials, as illustrated in figure 2.
 
-# Appendix A: Code
+```{r dist-diff, fig.cap="The distribution of 40,000 random variables drawn from an exponential distribution with $\\lambda = 0.2$ compared to the distribution of 10,000 sample means of 40 exponentials (using the same data). We see that the distribution of exponentials is *exponential*, as expected, but the distribution of *sample means* of the same exponentials is *normal*, as predicted by the CLT."}
+## Format simulations of random exponentials to work with
+## ggplot
+exp_draws <- data.frame(x = unlist(x))
 
-The following code was used to generate all of the results presented in this report.
+## Plot histogram of many random exponentials
+p1 <- ggplot(data = exp_draws,
+             mapping = aes(x = x)) +
+  geom_histogram(aes(y = ..density..),
+                 bins = n_bins,
+                 fill = fill) +
+  labs(x = "Exponential draw",
+       y = "Density",
+       title = "\\small{Distribution of 40000 exponentials}")
 
-```{r ref.label=knitr::all_labels(), tidy = TRUE, tidy.opts=list(width.cutoff=55), echo = TRUE, eval = FALSE}
-```
+## Plot histogram of sample means of 40 exponentials
+p2 <- ggplot(data = data,
+            mapping = aes(x = sample_means)) +
+  geom_histogram(aes(y = ..density..),
+                 bins = n_bins,
+                 fill = fill) + 
+  labs(x = "Sample mean, $\\bar{X}$",
+       y = "",
+       title = "\\footnotesize{Distribution of 10000 sample means}",
+       subtitle = "(of 40 exponentials)")
 
-\newpage
-
-# Appendix B: Session Info
-
-```{r sys_info}
-sessionInfo()  
+## Arrange plots in a grid
+grid.arrange(p1, p2, nrow = 1)
 ```
