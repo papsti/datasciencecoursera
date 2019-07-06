@@ -1,0 +1,158 @@
+---
+title: "Relationships between fuel efficiency and transmission type in cars"
+author: "Irena Papst"
+date: "2019-07-03"
+fontfamily: helvet
+header-includes:
+  - \renewcommand{\familydefault}{\sfdefault}
+output: pdf_document
+bibliography: proj.bib
+---
+
+```{r setup, include=FALSE}
+
+## Set knitr options
+knitr::opts_chunk$set(echo = FALSE, cache = TRUE, fig.width = 5, fig.height = 4)
+
+## Load libraries
+library(tidyverse)
+library(reshape2)
+```
+
+## Executive summary
+
+Fuel efficiency is often one of the factors considered when purchasing an automobile, as fuel is one of its major operating costs of a car. If an engine is more fuel efficient than another, it is capable of converting the same amount of fuel into more distance travelled. In the US, fuel efficiency measured in miles per gallon (MPG). It is commonly believed that cars with a manual transmission are generally more fuel efficient than those with an automatic transmission. We investigate this hypothesis using a linear regression model on the `mtcars` dataset available in `R`. We find that ________________. We conclude with a discussion of the limitations of the data, and therefore study.
+
+## Data
+
+```{r prep_data}
+
+## Convert data to tibble and make factor variables where helpful
+mtcars <- mtcars %>%
+  as_tibble()
+
+mtcars$am <- as.factor(mtcars$am)
+```
+
+```{r explore_data}
+
+## Count number of cars in each category of auto or manual
+sample_sizes <- mtcars %>%
+  count(am)
+
+auto_n <- filter(sample_sizes, am==0)$n
+man_n <- filter(sample_sizes, am==1)$n
+
+## 
+```
+
+There are `r auto_n` automatic cars and `r man_n` manual cars in this sample, meaning that the automatic sample is about `r round((auto_n - man_n)/man_n,2)*100`% larger than the manual sample. For such small sample sizes, this difference may present an issue, but we will not address it in this study.
+
+```{r boxplot, fig.cap="\\label{fig:boxplot} Boxplot of fuel efficiency for automatic and manual transmission. The fuel efficiency of manual cars appears to be larger than automatic ones."}
+
+boxplot <- ggplot(mtcars, aes(x = am, y = mpg, group = am)) + 
+  geom_boxplot() +
+  scale_x_discrete("Transmission type",
+    labels = c("0" = "Automatic", "1" = "Manual")) + 
+  ylab("Fuel efficiency (miles per gallon)")
+
+print(boxplot)
+```
+
+Looking at a boxplot of the data split by transmission type (Figure \ref{fig:boxplot}), it appears plausible that manual transmissions are more fuel efficient than automatic ones.
+
+```{r summaries, eval = FALSE}
+
+## Generate summary of mpg for whole data set and then grouped by
+## transmission type
+
+print("mpg (all cars):")
+summary(mtcars$mpg)
+
+print("mpg (automatic transmission)")
+summary(filter(mtcars, am == 0)$mpg)
+
+print("mpg (manual transmission)")
+summary(filter(mtcars, am ==1)$mpg)
+```
+
+## Model
+
+```{r corr_heatmap, fig.width = 3, fig.height = 3, fig.cap='\\label{fig:corr_heatmap} Correlation heatmap between fuel efficiency (mpg) and other variables available in the dataset. The most strongly correlated variables are all negatively correlated: weight in 1000 lbs (`wt`),  number of cylinders (`cyl`), displacement in cubic inches (`disp`), and gross horsepower (`hp`).'}
+
+## Compute the correlation matrix
+mtcars$am <- as.numeric(as.character(mtcars$am))
+  # convert am column back to numeric
+corr_mat <- cor(mtcars)
+
+## Melt correlation matrix to plot
+melt_corr_mat <- melt(corr_mat)
+
+## Plot heatmap
+corr_heatmap <- ggplot(filter(melt_corr_mat, Var1 == "mpg"),
+                       aes(x=Var1, y=Var2, fill=value)) +
+  geom_tile() + 
+  scale_fill_gradientn(breaks = c(-1,0,1),
+                       colours = c('hotpink1', 'grey80', 
+                                   'forestgreen'),
+                       labels = c(-1,0,1)) +
+  labs(x = 'Fuel efficiency',
+       y = 'Covariates',
+    fill = 'Correlation')
+
+print(corr_heatmap)
+```
+
+```{r corr_vals}
+print('Correlation between fuel efficiency (mpg) and other variables:')
+sort(corr_mat['mpg',])
+```
+
+Since we are interested in the relationship between transmission type (`am`) and fuel efficiency (`mpg`), we will certainly want to include transmission type as one of our regressors. To determine which other covariates to include in our models, we consider the correlation between fuel efficiency and all of the other variables in our dataset (Figure \ref{fig:corr_heatmap}). The most strongly correlated variables are all negatively correlated: weight in 1000 lbs (`wt`),  number of cylinders (`cyl`), displacement in cubic inches (`disp`), and gross horsepower (`hp`). We restrict ourselves to this set of covariates and explore a series of nested linear regression models.
+
+```{r fit-models}
+
+## Fit series of nested models
+fit1 <- lm(mpg ~ am, data = mtcars)
+fit2 <- lm(mpg ~ am + wt, data = mtcars)
+fit3 <- lm(mpg ~ am + wt + cyl, data = mtcars)
+fit4 <- lm(mpg ~ am + wt + cyl + disp, data = mtcars)
+fit5 <- lm(mpg ~ am + wt + cyl + disp + hp, data = mtcars)
+```
+
+Before selecting the best model for our purposes, we first check that the standardized residuals are approximately normally distributed to ensure that one of the main assumptions of a linear model is satisfied in each case. Figure \ref{fig:fit-qq} shows that this assumption is satisfied for each model.
+
+```{r fit-qq, fig.cap="\\label{fig:fit-qq} Normal q-q plots for the standardized residuals of the nested linear models, all of which have transmission type as a predictor and fuel efficiency as the response. The plots shows that the residuals appear to be reasonably normally distributed, satisfying one of the assumptions of a linear model.", fig.width=5, fig.height=8}
+par(mfrow = c(3, 2), mar = c(4, 4, 4, 2))
+plot(fit1, which = 2, main = 'mpg ~ am')
+plot(fit2, which = 2, main = 'mpg ~ am + wt')
+plot(fit3, which = 2, main = 'mpg ~ am + wt + cyl')
+plot(fit4, which = 2, main = 'mpg ~ am + wt + cyl + disp')
+plot(fit5, which = 2, main = 'mpg ~ am + wt + cyl + disp + hp')
+```
+
+To select the best model to answer our research question, we perfom an ANOVA on our set of nested models.
+
+```{r anova}
+anova(fit1, fit2, fit3, fit4, fit5)
+```
+
+The ANOVA shows that model 2 is a highly significant improvement over model 1, but model 3 is a further improvement over model 2. The subsequent models cannot be said to offer any further improvement that is statistically significant, and such overfitting will only serve to increase the actual variance in error of regression coefficient estimation.
+  
+* make at least one residuals plot? (per model we're considering?)
+
+* interpret coefficients of best model (with confidence interval) -- make conclusion
+
+## Results and discussion
+
+## Data and study limitations
+
+It is not known how the MPG measures were gathered in this dataset; the original data source [@Hocki76] simply states that "road tests were performed by 'Motor Trend' magazine in which gasoline mileage and ten phyiscal characteristics of various types of automobiles were recorded". No data collection protocol is desribed, which raises several issues. For instance, were these data collected during a controlled experiment or using real-world data from various drivers? In the latter case, there may be bias comparing data from different drivers as driving style (*e.g.* aggressive, cautious). Also, there is a known difference between fuel efficiency in "city" and "highway" driving conditions, so much so that the United States Environmental Protection Agency reports both figures on the fuel efficiency labels it issues on cars [@FuelEconLabels]. It is not clear whether this factor has been either controlled or randomized for in the data collection protocol.
+
+There is also a known bias toward exotic, non-US cars in this dataset, as noted by @HendeVelle81. It is possible that any differences observed in fuel efficiency between automatic and manual transmissions of exotic cars cannot be extrapolated to more common cards found in the US. The results of this report should be treated with caution as they are based on a biased data set.
+
+## References
+
+<div id="refs"></div>
+
+## Appendix
