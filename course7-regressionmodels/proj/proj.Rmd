@@ -4,7 +4,10 @@ author: "Irena Papst"
 date: "2019-07-03"
 fontfamily: helvet
 header-includes:
+  - \usepackage{placeins}
+  - \usepackage{fancyhdr}
   - \renewcommand{\familydefault}{\sfdefault}
+geometry: "margin=2cm"  
 output: pdf_document
 bibliography: proj.bib
 ---
@@ -12,16 +15,19 @@ bibliography: proj.bib
 ```{r setup, include=FALSE}
 
 ## Set knitr options
-knitr::opts_chunk$set(echo = FALSE, cache = TRUE, fig.width = 5, fig.height = 4)
+knitr::opts_chunk$set(echo = FALSE, cache = TRUE,
+                      fig.pos = 'h!')
 
 ## Load libraries
 library(tidyverse)
 library(reshape2)
+library(formula.tools)
+library(car)
 ```
 
 ## Executive summary
 
-Fuel efficiency is often one of the factors considered when purchasing an automobile, as fuel is one of its major operating costs of a car. If an engine is more fuel efficient than another, it is capable of converting the same amount of fuel into more distance travelled. In the US, fuel efficiency measured in miles per gallon (MPG). It is commonly believed that cars with a manual transmission are generally more fuel efficient than those with an automatic transmission. We investigate this hypothesis using a linear regression model on the `mtcars` dataset available in `R`. We find that ________________. We conclude with a discussion of the limitations of the data, and therefore study.
+Fuel efficiency is often one of the factors considered when purchasing an automobile, as fuel is one of its major operating costs of a car. If an engine is more fuel efficient than another, it is capable of converting the same amount of fuel into more distance travelled. In the US, fuel efficiency measured in miles per gallon (MPG). It is commonly believed that cars with a manual transmission are generally more fuel efficient than those with an automatic transmission. We investigate this hypothesis using a linear regression model on the `mtcars` dataset available in `R`. We find **no statistically significant difference** in fuel efficiency between manual and automatic transmission after controlling for car weight and number of cylinders, the two variables most highly correlated with fuel efficiency. We conclude with a discussion of the limitations of the data, and therefore of the study as well.
 
 ## Data
 
@@ -48,17 +54,6 @@ man_n <- filter(sample_sizes, am==1)$n
 
 There are `r auto_n` automatic cars and `r man_n` manual cars in this sample, meaning that the automatic sample is about `r round((auto_n - man_n)/man_n,2)*100`% larger than the manual sample. For such small sample sizes, this difference may present an issue, but we will not address it in this study.
 
-```{r boxplot, fig.cap="\\label{fig:boxplot} Boxplot of fuel efficiency for automatic and manual transmission. The fuel efficiency of manual cars appears to be larger than automatic ones."}
-
-boxplot <- ggplot(mtcars, aes(x = am, y = mpg, group = am)) + 
-  geom_boxplot() +
-  scale_x_discrete("Transmission type",
-    labels = c("0" = "Automatic", "1" = "Manual")) + 
-  ylab("Fuel efficiency (miles per gallon)")
-
-print(boxplot)
-```
-
 Looking at a boxplot of the data split by transmission type (Figure \ref{fig:boxplot}), it appears plausible that manual transmissions are more fuel efficient than automatic ones.
 
 ```{r summaries, eval = FALSE}
@@ -76,39 +71,33 @@ print("mpg (manual transmission)")
 summary(filter(mtcars, am ==1)$mpg)
 ```
 
+## Research questions
+
+We seek to investigate the following research questions:
+
+1. Is an automatic or manual transmission better for fuel efficiency?
+
+2. Can we quantify the fuel efficiency difference between automatic and manual transmissions in miles per gallon (mpg)?
+
 ## Model
 
-```{r corr_heatmap, fig.width = 3, fig.height = 3, fig.cap='\\label{fig:corr_heatmap} Correlation heatmap between fuel efficiency (mpg) and other variables available in the dataset. The most strongly correlated variables are all negatively correlated: weight in 1000 lbs (`wt`),  number of cylinders (`cyl`), displacement in cubic inches (`disp`), and gross horsepower (`hp`).'}
+We use a linear model to investigate our research questions.
 
+### Regressor selection
+
+Since we are interested in the relationship between transmission type (`am`) and fuel efficiency (`mpg`), we will certainly want to include transmission type as one of our regressors. To determine which other covariates to include in our models, we consider the correlation between fuel efficiency and all of the other variables in our dataset (Figure \ref{fig:corr_heatmap}):
+
+```{r corr_vals}
 ## Compute the correlation matrix
 mtcars$am <- as.numeric(as.character(mtcars$am))
   # convert am column back to numeric
 corr_mat <- cor(mtcars)
 
-## Melt correlation matrix to plot
-melt_corr_mat <- melt(corr_mat)
-
-## Plot heatmap
-corr_heatmap <- ggplot(filter(melt_corr_mat, Var1 == "mpg"),
-                       aes(x=Var1, y=Var2, fill=value)) +
-  geom_tile() + 
-  scale_fill_gradientn(breaks = c(-1,0,1),
-                       colours = c('hotpink1', 'grey80', 
-                                   'forestgreen'),
-                       labels = c(-1,0,1)) +
-  labs(x = 'Fuel efficiency',
-       y = 'Covariates',
-    fill = 'Correlation')
-
-print(corr_heatmap)
-```
-
-```{r corr_vals}
 print('Correlation between fuel efficiency (mpg) and other variables:')
 sort(corr_mat['mpg',])
 ```
 
-Since we are interested in the relationship between transmission type (`am`) and fuel efficiency (`mpg`), we will certainly want to include transmission type as one of our regressors. To determine which other covariates to include in our models, we consider the correlation between fuel efficiency and all of the other variables in our dataset (Figure \ref{fig:corr_heatmap}). The most strongly correlated variables are all negatively correlated: weight in 1000 lbs (`wt`),  number of cylinders (`cyl`), displacement in cubic inches (`disp`), and gross horsepower (`hp`). We restrict ourselves to this set of covariates and explore a series of nested linear regression models.
+The most strongly correlated variables are all negatively correlated: weight in 1000 lbs (`wt`),  number of cylinders (`cyl`), displacement in cubic inches (`disp`), and gross horsepower (`hp`). We restrict ourselves to this set of covariates and explore a series of nested linear regression models.
 
 ```{r fit-models}
 
@@ -120,34 +109,72 @@ fit4 <- lm(mpg ~ am + wt + cyl + disp, data = mtcars)
 fit5 <- lm(mpg ~ am + wt + cyl + disp + hp, data = mtcars)
 ```
 
+### Model assumptions
+
 Before selecting the best model for our purposes, we first check that the standardized residuals are approximately normally distributed to ensure that one of the main assumptions of a linear model is satisfied in each case. Figure \ref{fig:fit-qq} shows that this assumption is satisfied for each model.
 
-```{r fit-qq, fig.cap="\\label{fig:fit-qq} Normal q-q plots for the standardized residuals of the nested linear models, all of which have transmission type as a predictor and fuel efficiency as the response. The plots shows that the residuals appear to be reasonably normally distributed, satisfying one of the assumptions of a linear model.", fig.width=5, fig.height=8}
-par(mfrow = c(3, 2), mar = c(4, 4, 4, 2))
-plot(fit1, which = 2, main = 'mpg ~ am')
-plot(fit2, which = 2, main = 'mpg ~ am + wt')
-plot(fit3, which = 2, main = 'mpg ~ am + wt + cyl')
-plot(fit4, which = 2, main = 'mpg ~ am + wt + cyl + disp')
-plot(fit5, which = 2, main = 'mpg ~ am + wt + cyl + disp + hp')
+We also verify that the means of the standardized residuals are near 0:
+
+```{r mean_std_resid}
+
+## Function to compute means of standardized residuals
+mean_std_resid <- function(x){
+  model <- paste0("fit", x)
+  the_mean <- mean(rstandard(get(model)))
+}
+
+print("Means of standardized residuals for each model")
+mean_std_resid_df <- data.frame(
+  "model_1" = mean_std_resid(1),
+  "model_2" = mean_std_resid(2),
+  "model_3" = mean_std_resid(3),
+  "model_4" = mean_std_resid(4),
+  "model_5" = mean_std_resid(5)
+)
+mean_std_resid_df
+
 ```
 
-To select the best model to answer our research question, we perfom an ANOVA on our set of nested models.
+### Model selection
+
+To select the best model to answer our research question, we perfom an ANOVA on our set of nested models to test whether the addition of the next most correlated covariate offers a significant improvement over the model before it.
 
 ```{r anova}
-anova(fit1, fit2, fit3, fit4, fit5)
+anova_fit <- anova(fit1, fit2, fit3, fit4, fit5)
+print(anova_fit)
+
+anova_pvals <- anova_fit[["Pr(>F)"]]
 ```
 
-The ANOVA shows that model 2 is a highly significant improvement over model 1, but model 3 is a further improvement over model 2. The subsequent models cannot be said to offer any further improvement that is statistically significant, and such overfitting will only serve to increase the actual variance in error of regression coefficient estimation.
-  
-* make at least one residuals plot? (per model we're considering?)
+The ANOVA shows that model 2 is a highly significant improvement over model 1 ($p = `r anova_pvals[2]`$), but model 3 is a further improvement over model 2 ($p = `r anova_pvals[3]`$). The subsequent models cannot be said to offer much further improvement that is statistically significant, and such overfitting will only serve to increase the actual variance in error of regression coefficient estimation.
 
-* interpret coefficients of best model (with confidence interval) -- make conclusion
+We select model 3, where fuel efficiency is predicted using transmission type, weight (in 1000 lbs), and the number of cylinders (`mpg ~ am + wt + cyl`).
+
+We check the variance inflation factors (VIFs) for each covariate in our selected model.
+
+```{r vifs}
+vif(fit3)
+```
+
+Since the VIFs are moderate, we are not concerned about colinearity with this particular set of regressors.
 
 ## Results and discussion
 
+```{r model_results}
+coefs <- coef(fit3)
+confints <- confint(fit3)
+print(coefs)
+print(confints)
+lower <- as.character(round(confints["am", "2.5 %"], 3))
+upper <- as.character(round(confints["am", "97.5 %"], 3))
+confint_string <- paste0('[', lower, ', ', upper, ']')
+```
+
+The regression coefficient of the transmission type is `r coefs['am']`, which would indicate that a manual transmission offers a fuel efficiency increase of `r coefs['am']` miles/gallon over an automatic transmission (holding weight and number of cylinders constant). However, if we compute the 95% confidence interval around this regression coefficient, we get `r confint_string`. Since this confident interval includes zero, we conclude that there is no statistically significant difference in fuel efficiency between cars with manual and automatic transmission, after controlling for car weight and number of cylinders.
+
 ## Data and study limitations
 
-It is not known how the MPG measures were gathered in this dataset; the original data source [@Hocki76] simply states that "road tests were performed by 'Motor Trend' magazine in which gasoline mileage and ten phyiscal characteristics of various types of automobiles were recorded". No data collection protocol is desribed, which raises several issues. For instance, were these data collected during a controlled experiment or using real-world data from various drivers? In the latter case, there may be bias comparing data from different drivers as driving style (*e.g.* aggressive, cautious). Also, there is a known difference between fuel efficiency in "city" and "highway" driving conditions, so much so that the United States Environmental Protection Agency reports both figures on the fuel efficiency labels it issues on cars [@FuelEconLabels]. It is not clear whether this factor has been either controlled or randomized for in the data collection protocol.
+It is not known how the fuel efficiency measures were gathered in this dataset; the original data source [@Hocki76] simply states that "road tests were performed by 'Motor Trend' magazine in which gasoline mileage and ten phyiscal characteristics of various types of automobiles were recorded". No data collection protocol is desribed, which raises several issues. For instance, were these data collected during a controlled experiment or using real-world data from various drivers? In the latter case, there may be bias comparing data from different drivers as driving style (*e.g.* aggressive, cautious). Also, there is a known difference between fuel efficiency in "city" and "highway" driving conditions, so much so that the United States Environmental Protection Agency reports both figures on the fuel efficiency labels it issues on cars [@FuelEconLabels]. It is not clear whether this factor has been either controlled or randomized for in the data collection protocol.
 
 There is also a known bias toward exotic, non-US cars in this dataset, as noted by @HendeVelle81. It is possible that any differences observed in fuel efficiency between automatic and manual transmissions of exotic cars cannot be extrapolated to more common cards found in the US. The results of this report should be treated with caution as they are based on a biased data set.
 
@@ -155,4 +182,61 @@ There is also a known bias toward exotic, non-US cars in this dataset, as noted 
 
 <div id="refs"></div>
 
-## Appendix
+\newpage
+\setcounter{page}{1}
+
+\pagestyle{fancy}
+\fancyhead[L]{\large \textbf{Appendix}}
+\fancyfoot[C]{A.\thepage}
+
+```{r boxplot, fig.width = 5, fig.height = 4, fig.cap="\\label{fig:boxplot} Boxplot of fuel efficiency for automatic and manual transmission. The fuel efficiency of manual cars appears to be larger than automatic ones."}
+
+boxplot <- ggplot(mtcars, aes(x = am, y = mpg, group = am)) + 
+  geom_boxplot() +
+  scale_x_discrete("Transmission type",
+    labels = c("0" = "Automatic", "1" = "Manual")) + 
+  ylab("Fuel efficiency (miles per gallon)")
+
+print(boxplot)
+```
+
+```{r corr_heatmap, fig.width = 4, fig.height = 3, fig.cap='\\label{fig:corr_heatmap} Correlation heatmap between fuel efficiency (mpg) and other variables available in the dataset. The most strongly correlated variables are all negatively correlated: weight in 1000 lbs (`wt`),  number of cylinders (`cyl`), displacement in cubic inches (`disp`), and gross horsepower (`hp`).'}
+
+## Melt correlation matrix to plot
+melt_corr_mat <- melt(corr_mat)
+
+## Plot heatmap
+corr_heatmap <- ggplot(filter(melt_corr_mat, Var1 == "mpg"),
+                       aes(x=Var1, y=Var2, fill=value)) +
+  geom_tile() + 
+  scale_fill_gradientn(breaks = c(-1,0,1),
+                       colours = c('hotpink1', 'grey80', 
+                                   'forestgreen'),
+                       limits = c(-1,1),
+                       labels = c(-1,0,1)) +
+  labs(x = 'Fuel efficiency',
+       y = 'Covariates',
+    fill = 'Correlation')
+
+print(corr_heatmap)
+```
+
+```{r fit-qq, fig.cap="\\label{fig:fit-qq} Normal q-q plots for the standardized residuals of the nested linear models, all of which have transmission type as a predictor and fuel efficiency as the response. The plots shows that the residuals appear to be reasonably normally distributed, satisfying one of the assumptions of a linear model.", fig.width=5, fig.height=8}
+
+## Function to create each q-q plot
+my_qqplot <- function(x){
+  plot(get(paste0('fit', as.character(x))),
+       which = 2,
+       main = as.character(
+        formula(get(paste0('fit', as.character(x))))
+        ),
+       caption = "")
+}
+
+par(mfrow = c(3, 2), mar = c(4, 4, 4, 2))
+my_qqplot(1)
+my_qqplot(2)
+my_qqplot(3)
+my_qqplot(4)
+my_qqplot(5)
+```

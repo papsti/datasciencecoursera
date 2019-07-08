@@ -10,3 +10,6 @@ stringr
 forcats
 bindrcpp
 reshape2
+formula.tools
+carData
+car
