@@ -1,0 +1,104 @@
+---
+title: "Predicting quality of weight lifting exercises using data from wearable devices"
+author: Irena Papst
+output: html_notebook
+bibliography: proj.bib
+---
+
+## Background and motivation
+
+Wearable activity monitors have become quite popular and increasingly inexpensive, enabling individuals to automatically track many features of the phyiscal activity they perform each day: from type of exercise to duration to frequency. While a sufficient quantity of regular exercise is important for improving and maintaining good health, the *quality* of exercise performed is also consequential. This feature is difficult to track directly, but it may perhaps be inferred from data gathered using wearable devices.
+
+The goal of this project is to use data collected by a wearable activity monitor to predict the quality of a weight-lifting exercise performed.
+
+## Data
+
+We use data from the Weight Lifting Exercises Dataset [@Vello+13]. Six young and healthy participants were asked to perform one set of 10 repetitions of the unilateral dumbbell bicep curl perfectly (class A), or with one of four mistakes: throwing elbows to the front (class B), lifting or lowering the dumbell only halfway (classes C and D, respectively), and throwing the hips to the front (class E). While the participants had little weight lifting experience, they were supervised by an experienced weight lifter to ensure the exercises were completed in the manner specified, and they used a relatively light dumbell (1.25 kg).
+
+Four orientation sensors tracked the exercises and were located on the dumbell, as well as on the participant's upper arm, forearm, and belt. These sensors record roll, pitch, yaw, total acceleration (four measurements per sensor for a total of 16 measurements), as well as gyroscope, accelerometer, and magnetoscope readings for each of the $x$, $y$, and $z$ coordinates (three measurements per coordinate per sensor for a total of 36 measurements). As a result, we have a maximum of 52 measurements upon which we can base our prediction. 
+
+```{r load_libraries, echo = F, results = F}
+library(tidyverse)
+library(randomForest)
+```
+
+```{r load_data, results = F}
+
+## Load data
+training <- read_csv("data/pml-training.csv")
+testing <- read_csv("data/pml-testing.csv")
+
+```
+
+```{r tidy_data}
+## Tidy data
+
+## Training data
+training <- training %>%
+  ## Filter training to remove rows with summary stats
+  ## (none to predict in the test set so probably not relevant)
+  filter(new_window == "no") %>%
+  ## Remove cols where all vals are NA
+  map(~.x) %>%
+  discard(~all(is.na(.x))) %>%
+  map_df(~.x) %>%
+  ## Remove cols irrelevant to prediction
+  select(-c(X1, user_name,
+            raw_timestamp_part_1, raw_timestamp_part_2,
+            cvtd_timestamp,
+            new_window, num_window))
+  
+## Testing data
+testing <- testing %>%
+    ## Remove cols where all vals are NA
+  map(~.x) %>%
+  discard(~all(is.na(.x))) %>%
+  map_df(~.x) %>%
+  ## Remove cols irrelevant to prediction
+  select(-c(X1, user_name,
+            raw_timestamp_part_1, raw_timestamp_part_2,
+            cvtd_timestamp,
+            new_window, num_window))
+
+```
+
+## Model
+
+* pare down predictors using rfcv, which automatically calculates variable importance in terms of estimated OOS accuracy and then selects the optimal number and choice of predictors (check this is indeed what it does)
+* feature selection
+    * rfcv and then look at importance of variables for accuracy
+        * select $x$ most important variables in this respect
+* **next:** read about `rfcv()` and implement -- DON'T FORGET TO SET SEED
+    * [tutorial](https://rstudio-pubs-static.s3.amazonaws.com/300604_3da1e726964d47a794d3323ffb41264d.html) -- is this just to pare down the number of predictors (as a first pass?)
+    * look at `Importance()` plot? -- see [here](https://www.kaggle.com/c/forest-cover-type-prediction/discussion/10532) and `varImpPlot()`
+    * plot of OOS accuracy as a function of the number of predictors
+    * look at how to turn ML algo params [here](https://machinelearningmastery.com/tune-machine-learning-algorithms-in-r/)
+    
+### Algorithm
+* what training algo?
+    * random forest?
+      * very accurate, but slow and hard to interpret
+      * "rfcv" to avoid overfitting
+    * trying to predict categorical outcome with more than two values, so linear or logistic regression are inappropriate
+    * naive bayes requires the assumption that the data follows a probabilistic model, but we have no reason to assume any particular distribution
+
+  
+**JUSTIFY ALL CHOICES**
+
+## Results
+
+### Estimating OOS error
+
+* what method of cross validation to use?
+    * large sample size in training set, so no need to bootstrap (can sample w/o replacement for CV)
+    * larger k for less bias (even tho more variance in OOS error rate estimate)? maybe ok since we have a large sample size
+    
+### Predict
+* predict on the 20 test cases
+
+## Conclusion
+
+* summarize work and results
+* add word count to top of doc
+
+## References
