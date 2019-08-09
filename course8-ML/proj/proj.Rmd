@@ -1,7 +1,9 @@
 ---
 title: "Predicting quality of weight lifting exercises using data from wearable devices"
-author: Irena Papst
-output: html_notebook
+author: "Irena Papst"
+output:
+  html_document:
+    df_print: paged
 bibliography: proj.bib
 ---
 
@@ -22,7 +24,7 @@ library(tidyverse)
 library(randomForest)
 ```
 
-```{r load_data, results = F}
+```{r load_data, results = F, warning = FALSE, cache = TRUE}
 
 ## Load data
 training <- read_csv("data/pml-training.csv")
@@ -30,7 +32,7 @@ testing <- read_csv("data/pml-testing.csv")
 
 ```
 
-```{r tidy_data}
+```{r tidy_data, cache = TRUE}
 ## Tidy data
 
 ## Training data
@@ -63,6 +65,53 @@ testing <- testing %>%
 ```
 
 ## Model
+
+We are trying to predict a categorical outcome with more than two values with continuous predictors, so linear or logistic regression are inapporpriate. Naive Bayes requires the assumption that the data follows a probabilistic model, but we have no reason to assume particular distributions for our predictors. Instead, we choose a random forest as it is compatible with our input data and can be very accurate. It is true that random forests can be slow and hard to interpret, but these are not major concerns here, as we seek to run this experiment only once and are primarily interested in accuracy and not model interpretability.
+
+### Feature selection
+
+Another issue with random forests is the potential for overfitting. We start with the full model (52 predictors) and proportionally reduce the number of predictors by 1/2 at each step, keeping only the most important variables with respect to their associated mean difference in accuracy of results. We also compute the cross-validated prediction performance of these models. Both of these steps are achieved using the `rfcv()` function from the `randomForest` package with its default values: 5-fold cross-validation, $\max\{ 1, \rm{floor}(p)\}$ predictors to try at each node, where $p$ is the remaining number of predictors.
+
+```{r rfcv, cache = TRUE}
+## Set seed
+set.seed(1346)
+
+## Change training tibble to dataframe for compatibility with rfcv()
+training <- as.data.frame(training)
+training$classe <- as.factor(training$classe)
+cross_val <- rfcv(trainx = select(training, -classe), 
+                  trainy = training$classe)
+
+## Plot estimated OOS error from cross-validation as a function of the number of predictors
+cv_error <- data.frame(n_var = cross_val$n.var,
+                       error = as.numeric(cross_val$error.cv))
+p <- ggplot(cv_error, aes(x = n_var, y = error)) +
+  geom_line() + 
+  geom_point() +
+  geom_point(aes(x = 6, y = error[4]), colour = "dodgerblue") +
+  geom_text(aes(x = 6+5, y = error[4]*2.5,
+                label = paste0("(6, ", round(error[4], 3), ")")),
+            colour = "dodgerblue") +
+  xlab("Number of predictors") + 
+  ylab("5-fold cross-validation error")
+print(p)
+```
+
+Remarkably, even with just 6 variables out of a possible 52, the model still achieves a $`r round(cross_val$error.cv[4], 3)*100` \%$ error rate, for an accuracy of $`r (1-round(cross_val$error.cv[4], 3))*100` \%$.
+
+Next, we train another random forest model on all 52 predictors, so that we may find the 6 most important ones for our final model. We use the default values in the `randomForest()` function, keeping track of the importance of each predictor for correctly classifying each outcome type.
+
+```{r rf_full, cache = TRUE}
+
+full_model <- randomForest(classe ~ ., data = training,
+                           importance = TRUE)
+```
+
+Since we are most interested in accuracy, we sort the list of predictors by mean decrease in accuracy (after permuting predictors, averaged over all trees) recorded during model training and choose the six most important predictors (where a larger number indicates more importance in the model):
+
+```{r pred_selection}
+names(sort(importance(full_model)[,6], decreasing = TRUE))[1:6]
+```
 
 * pare down predictors using rfcv, which automatically calculates variable importance in terms of estimated OOS accuracy and then selects the optimal number and choice of predictors (check this is indeed what it does)
 * feature selection
