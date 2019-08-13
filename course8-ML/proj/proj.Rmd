@@ -9,22 +9,22 @@ bibliography: proj.bib
 
 ## Background and motivation
 
-Wearable activity monitors have become quite popular and increasingly inexpensive, enabling individuals to automatically track many features of the phyiscal activity they perform each day: from type of exercise to duration to frequency. While a sufficient quantity of regular exercise is important for improving and maintaining good health, the *quality* of exercise performed is also consequential. This feature is difficult to track directly, but it may perhaps be inferred from data gathered using wearable devices.
+Wearable activity monitors have become quite popular and increasingly inexpensive, enabling individuals to automatically track many features of the physical activity they perform each day: from type of exercise to duration to frequency. While a sufficient quantity of regular exercise is important for improving and maintaining good health, the *quality* of exercise performed is also consequential. This feature is difficult to track directly, but it may perhaps be inferred from data gathered using wearable devices.
 
-The goal of this project is to use data collected by a wearable activity monitor to predict the quality of a weight-lifting exercise performed.
+The goal of this project is to use data collected from sensors worn by a person to predict the quality of a weight-lifting exercise performed.
 
 ## Data
 
-We use data from the Weight Lifting Exercises Dataset [@Vello+13]. Six young and healthy participants were asked to perform one set of 10 repetitions of the unilateral dumbbell bicep curl perfectly (class A), or with one of four mistakes: throwing elbows to the front (class B), lifting or lowering the dumbell only halfway (classes C and D, respectively), and throwing the hips to the front (class E). While the participants had little weight lifting experience, they were supervised by an experienced weight lifter to ensure the exercises were completed in the manner specified, and they used a relatively light dumbell (1.25 kg).
+We use data from the Weight Lifting Exercises Dataset [@Vello+13]. Six young and healthy participants were asked to perform one set of 10 repetitions of the unilateral dumbbell bicep curl perfectly (class A), or with one of four mistakes: throwing elbows to the front (class B), lifting or lowering the dumbbell only halfway (classes C and D, respectively), and throwing the hips to the front (class E). While the participants had little weight lifting experience, they were supervised by an experienced weight lifter to ensure the exercises were completed in the manner specified, and they used a relatively light dumbbell (1.25 kg) to be able to focus on properly executing the required motions.
 
-Four orientation sensors tracked the exercises and were located on the dumbell, as well as on the participant's upper arm, forearm, and belt. These sensors record roll, pitch, yaw, total acceleration (four measurements per sensor for a total of 16 measurements), as well as gyroscope, accelerometer, and magnetoscope readings for each of the $x$, $y$, and $z$ coordinates (three measurements per coordinate per sensor for a total of 36 measurements). As a result, we have a maximum of 52 measurements upon which we can base our prediction. 
+Four orientation sensors tracked the exercises and were located on the dumbbell, as well as on the participant's upper arm, forearm, and belt. These sensors record roll, pitch, yaw, total acceleration (four measurements per sensor for a total of 16 measurements), as well as gyroscope, accelerometer, and magnetoscope readings for each of the $x$, $y$, and $z$ coordinates (three measurements per coordinate per sensor for a total of 36 measurements). As a result, we have a maximum of 52 measurements upon which we can base our prediction model. 
 
-```{r load_libraries, echo = F, results = F}
+```{r load_libraries, echo = F, message = F, results = F}
 library(tidyverse)
 library(randomForest)
 ```
 
-```{r load_data, results = F, warning = FALSE, cache = TRUE}
+```{r load_data, results = F, message = F, warning = F, cache = TRUE}
 
 ## Load data
 training <- read_csv("data/pml-training.csv")
@@ -66,14 +66,16 @@ testing <- testing %>%
 
 ## Model
 
-We are trying to predict a categorical outcome with more than two values with continuous predictors, so linear or logistic regression are inapporpriate. Naive Bayes requires the assumption that the data follows a probabilistic model, but we have no reason to assume particular distributions for our predictors. Instead, we choose a random forest as it is compatible with our input data and can be very accurate. It is true that random forests can be slow and hard to interpret, but these are not major concerns here, as we seek to run this experiment only once and are primarily interested in accuracy and not model interpretability.
+We are trying to predict a categorical outcome with more than two values using continuous predictors, so linear or logistic regression are inappropriate. Naive Bayes requires the assumption that the data follows a probabilistic model, but we have no reason to assume particular distributions for our predictors. Instead, we choose a random forest as it is compatible with our input data and can be very accurate. It is true that random forests can be slow and hard to interpret, but these are not major concerns here, as we seek to run this experiment only once and are primarily interested in accuracy and not model interpretability.
 
 ### Feature selection
 
-Another issue with random forests is the potential for overfitting. We start with the full model (52 predictors) and proportionally reduce the number of predictors by 1/2 at each step, keeping only the most important variables with respect to their associated mean difference in accuracy of results. We also compute the cross-validated prediction performance of these models. Both of these steps are achieved using the `rfcv()` function from the `randomForest` package with its default values: 5-fold cross-validation, $\max\{ 1, \rm{floor}(p)\}$ predictors to try at each node, where $p$ is the remaining number of predictors.
+Another issue with random forests is the potential for overfitting, so we start by looking at model accuracy as a function of the number of predictors to decide on the number of predictors in our final model. 
+
+Beginning with the full model (52 predictors), we proportionally reduce the number of predictors by 1/2 at each step, keeping only the most important variables with respect to their associated mean difference in accuracy of results after predictor permutation. We also compute the cross-validated prediction performance of these models. Both of these steps are achieved using the `rfcv()` function from the `randomForest` package with its default values: 5-fold cross-validation, $\max\{ 1, \rm{floor}(p)\}$ predictors to try at each node, where $p$ is the remaining number of predictors.
 
 ```{r rfcv, cache = TRUE}
-## Set seed
+## Set seed for reproducibility 
 set.seed(1346)
 
 ## Change training tibble to dataframe for compatibility with rfcv()
@@ -81,6 +83,9 @@ training <- as.data.frame(training)
 training$classe <- as.factor(training$classe)
 cross_val <- rfcv(trainx = select(training, -classe), 
                   trainy = training$classe)
+```
+
+```{r rfcv_fig, fig.width = 5, fig.height = 4, fig.cap="**Figure 1: The effect of the number of predictors on model accuracy.** The out-of-bag error is estimated using 5-fold cross-validation and the $n$ most important predictors (based on mean difference in accuracy of results) at each point. The model is still highly accurate at only six predictors."}
 
 ## Plot estimated OOS error from cross-validation as a function of the number of predictors
 cv_error <- data.frame(n_var = cross_val$n.var,
@@ -99,7 +104,7 @@ print(p)
 
 Remarkably, even with just 6 variables out of a possible 52, the model still achieves a $`r round(cross_val$error.cv[4], 3)*100` \%$ error rate, for an accuracy of $`r (1-round(cross_val$error.cv[4], 3))*100` \%$.
 
-Next, we train another random forest model on all 52 predictors, so that we may find the 6 most important ones for our final model. We use the default values in the `randomForest()` function, keeping track of the importance of each predictor for correctly classifying each outcome type.
+Next, we train another random forest model on all 52 predictors, so that we may find the six most important ones for our final model. We use the default values in the `randomForest()` function, keeping track of the importance of each predictor for correctly classifying each outcome type.
 
 ```{r rf_full, cache = TRUE}
 
@@ -110,44 +115,48 @@ full_model <- randomForest(classe ~ ., data = training,
 Since we are most interested in accuracy, we sort the list of predictors by mean decrease in accuracy (after permuting predictors, averaged over all trees) recorded during model training and choose the six most important predictors (where a larger number indicates more importance in the model):
 
 ```{r pred_selection}
-names(sort(importance(full_model)[,6], decreasing = TRUE))[1:6]
+six_preds <- names(sort(importance(full_model)[,6], decreasing = TRUE))[1:6]
+print(six_preds)
 ```
-
-* pare down predictors using rfcv, which automatically calculates variable importance in terms of estimated OOS accuracy and then selects the optimal number and choice of predictors (check this is indeed what it does)
-* feature selection
-    * rfcv and then look at importance of variables for accuracy
-        * select $x$ most important variables in this respect
-* **next:** read about `rfcv()` and implement -- DON'T FORGET TO SET SEED
-    * [tutorial](https://rstudio-pubs-static.s3.amazonaws.com/300604_3da1e726964d47a794d3323ffb41264d.html) -- is this just to pare down the number of predictors (as a first pass?)
-    * look at `Importance()` plot? -- see [here](https://www.kaggle.com/c/forest-cover-type-prediction/discussion/10532) and `varImpPlot()`
-    * plot of OOS accuracy as a function of the number of predictors
-    * look at how to turn ML algo params [here](https://machinelearningmastery.com/tune-machine-learning-algorithms-in-r/)
-    
-### Algorithm
-* what training algo?
-    * random forest?
-      * very accurate, but slow and hard to interpret
-      * "rfcv" to avoid overfitting
-    * trying to predict categorical outcome with more than two values, so linear or logistic regression are inappropriate
-    * naive bayes requires the assumption that the data follows a probabilistic model, but we have no reason to assume any particular distribution
-
-  
-**JUSTIFY ALL CHOICES**
 
 ## Results
 
-### Estimating OOS error
+### Estimating out-of-bag error
 
-* what method of cross validation to use?
-    * large sample size in training set, so no need to bootstrap (can sample w/o replacement for CV)
-    * larger k for less bias (even tho more variance in OOS error rate estimate)? maybe ok since we have a large sample size
-    
+We train a random forest model with these six predictors, keeping all other options at their default values.
+
+```{r rf_six, cache = TRUE}
+preds <- paste(six_preds, collapse = " + ")
+form <- paste0("classe ~ ", preds)
+six_model <- randomForest(as.formula(form), data = training)
+print(six_model)
+```
+
+For the six predictor model, the out-of-bag (OOB) estimate of the error rate is $1.45$%, indicating that our model is already very accurate, and only requires the readings from three sensors: belt, dumbbell, forearm. However, of our six most important predictors, the three most important all come from one sensor: the belt sensor. It would be interesting to see whether we can get similar accuracy for a model that relies only on the belt sensor (namely the roll, pitch, and yaw measurements), reducing the number of sensors required for very accurate prediction from three to one, which would be more economically viable for a wearable fitness tracker product.
+
+```{r rf_three, cache = TRUE}
+three_preds <- six_preds[1:3]
+preds <- paste(three_preds, collapse = " + ")
+form <- paste0("classe ~ ", preds)
+three_model <- randomForest(as.formula(form), data = training)
+print(three_model)
+```
+
+Alas, relying on only these three belt sensor measurements gives an OOB estimate for the error rate of $13.32$%, which is an order of magnitude worse than the six predictor model. Of course, this result is not all that surprising given that our earlier 5-fold cross-validation experiment predicted an OOB error rate of $`r round(cv_error$error[5],4)*100`$% for the three most important predictors (see Figure 1).
+
+For our final model, we select the one with the six most important predictors: the belt yaw, roll, and pitch, the $y-$ and $z-$coordinates of the dumbbell magnetoscope, and the forearm pitch.
+
 ### Predict
-* predict on the 20 test cases
+
+We now predict on 20 held-out test cases that have not been used in any way to train our model.
+
+```{r predict_test, cache = TRUE}
+predict_test <- predict(six_model, newdata = testing)
+print(predict_test)
+```
 
 ## Conclusion
 
-* summarize work and results
-* add word count to top of doc
+We have built a random forest model to predict the performance quality of a weight lifting exercise given various data from sensors on a subject's body. Our final model uses six out of a possible 52 measurements as predictors: belt sensor yaw, roll, and pitch, the $y-$ and $z-$coordinates of the dumbbell magnetoscope, and the forearm sensor pitch. These predictors were chosen using cross-validation. We estimate an out-of-bag error rate as 1.43%, which gives our model an estimated accuracy of $`r 100-1.43`$%.
 
 ## References
