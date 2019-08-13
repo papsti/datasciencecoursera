@@ -1,6 +1,7 @@
 ---
 title: "Predicting quality of weight lifting exercises using data from wearable devices"
 author: "Irena Papst"
+date: 2019-08-13
 output:
   html_document:
     df_print: paged
