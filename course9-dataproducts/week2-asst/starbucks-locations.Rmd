@@ -1,0 +1,41 @@
+---
+title: "Starbucks Locations in Canada"
+author: "Irena Papst"
+date: "2019-08-16"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+## Knitr options
+knitr::opts_chunk$set(echo = TRUE)
+
+## Libraries
+library(tidyverse)
+library(leaflet)
+```
+
+To show Starbucks locations in Canada on an interactive map, we start with a dataset of Starbucks locations worldwide (as of February 2017), downloaded form [Kaggle](https://www.kaggle.com/starbucks/store-locations). We filter out all locations outside of Canada, and make a nice popup label with the store name and full address. 
+
+```{r load_prep_data, message = FALSE}
+## Load the data 
+data <- read_csv("data/starbucks-locations.csv") %>%
+  ## Filter for rows where the country is Canada
+  filter(Country == "CA") %>%
+  ## Prep df for leaflet with annotations
+  rename(lng = Longitude, lat = Latitude) %>%
+  ## Add popup string
+  unite("label", c("Store Name", "Street Address", 
+                   "City", "State/Province"),
+                   sep = " <br> ")
+```
+
+```{r make_map, message = FALSE}
+data %>%
+  ## REMOVE NA?
+  leaflet() %>%
+  addTiles() %>%
+  addMarkers(popup = data$label,
+             clusterOptions = markerClusterOptions())
+```
+
+Simply click a marker to get a store's full address!
