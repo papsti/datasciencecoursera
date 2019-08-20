@@ -1,0 +1,58 @@
+---
+title: "Petal length and width in different types of irises"
+author: "Irena Papst"
+date: "2019-08-20"
+output: ioslides_presentation
+---
+
+```{r setup, include=FALSE}
+## Knitr setup
+knitr::opts_chunk$set(echo = TRUE)
+
+# Packages
+library(plotly)
+```
+
+## Central question
+
+Do petal length and width differ significantly in different types of irises?
+
+## Data
+
+We use the `iris` dataset (built into R) to explore this question:
+
+```{r load_data, echo = F}
+data(iris)
+```
+
+```{r explore_data}
+## Measurements:
+names(iris)
+## Species sampled:
+levels(iris$Species)
+```
+
+## Plot setup
+
+We use the `plotly` package to easily generate an interactive plot that enables us to explore our central question:
+
+```{r plot_setup}
+p <- plot_ly(iris,
+             x = ~Petal.Length, y = ~Petal.Width,
+             type = 'scatter', mode = 'markers',
+             color = ~Species)
+```
+
+## Plot
+
+```{r plot_display, echo = F}
+p
+```
+
+## Conclusions
+
+* There is noticeable separation between the setosa cluster and the other two iris types, in terms of petal length and width.
+
+* There is a small amount of overlap between the versicolor and virginica clusters.
+
+* It is plausible that the petal length and width differ significantly for the three types of irises, but this result has not been shown statistically.
