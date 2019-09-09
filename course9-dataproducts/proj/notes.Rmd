@@ -1,0 +1,61 @@
+---
+title: "proj notes"
+output:
+  html_document:
+    df_print: paged
+---
+
+## Setup
+
+```{r mac_pc_setup}
+## Mac or PC? -- set git repo path
+mac <- FALSE
+if (mac){
+  git_path <- "~/git-repos/"
+} else{
+  git_path <- "C:\\Users\\ip98\\Desktop\\git-repos\\"
+}
+
+## Utility function to convert mac path to PC
+mac_to_pc <- function(path){
+  return(gsub("/", "\\\\", path))
+}
+
+repo_path <- "datasciencecoursera/course9-dataproducts/proj/"
+if (!mac){
+  repo_path <- mac_to_pc(repo_path)
+}
+```
+
+```{r load_libraries}
+library(tidyverse)
+```
+
+## Intro
+
+Let's use the ["Canada Mortgage and Housing Corporation, average rents for areas with a population of 10,000 and over"](https://www150.statcan.gc.ca/t1/tbl1/en/tv.action?pid=3410013301) dataset to explore how annual average rents have changed over time in different geographic areas, for different structure and unit types.
+
+The documentation on this dataset isn't great, but I think we can safely assume that the rent values are per month, averaged over the year for multiple datapoints in each category.
+
+```{r load_data}
+data_filename <- "data/housing.csv"
+if (!mac){
+  data_filename <- mac_to_pc(data_filename)
+}
+data_fullpath <- paste0(git_path, repo_path, data_filename)
+
+housing <- read_csv(data_fullpath)
+```
+
+## Clean data
+
+```{r tidy_data}
+
+## Convert colnames to lowercase
+colnames(housing) <- tolower(colnames(housing))
+colnames(housing)
+
+## Remove spaces from some colnames of interest
+## use stringr?
+
+```
