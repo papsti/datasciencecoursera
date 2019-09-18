@@ -27,8 +27,13 @@ if (!mac){
 }
 ```
 
+```{knitr_opts}
+knitr:::opts_chunk(fig.width = 10, fig.height = 4)
+```
+
 ```{r load_libraries}
 library(tidyverse)
+library(stringr)
 ```
 
 ## Intro
@@ -51,11 +56,82 @@ housing <- read_csv(data_fullpath)
 
 ```{r tidy_data}
 
-## Convert colnames to lowercase
-colnames(housing) <- tolower(colnames(housing))
-colnames(housing)
+## Convert colnames to lowercase and replace spaces with underscores
+colnames(housing) <- colnames(housing) %>%
+  tolower() %>%
+  str_replace_all(c(" " = "_"))
 
-## Remove spaces from some colnames of interest
-## use stringr?
+## Rename certain columns and select only those we are interested in
+housing_sav <- housing ## save dataframe before manipulating
+housing <- housing %>%
+  rename(year = ref_date) %>%
+  rename(avg_monthly_rent = value) %>%
+  select(year, geo, type_of_structure, type_of_unit, avg_monthly_rent, terminated) %>%
+  drop_na(avg_monthly_rent) %>% ## drop observations with no avg monthly rent value
+  mutate_if(sapply(., is.character), as.factor) %>% ## convert char cols to factors 
+  mutate(type_of_unit = fct_relevel(type_of_unit, "Two bedroom units", after = 2)) %>% 
+  mutate(type_of_structure
+          = fct_recode(type_of_structure,
+                       "Apt structs of >5 units" 
+                          = "Apartment structures of six units and over",
+                       "Apt structs of >2 units"
+                          = "Apartment structures of three units and over",
+                       "Row & apt structs >2 units"
+                          = "Row and apartment structures of three units and over",
+                       "Row structs >2 units"
+                          = "Row structures of three units and over"))
+#housing <- housing_sav ## recover saved dataframe
+```
+
+## Explore data
+
+Now that our data is in a nice, clean form, let's make some plots to look at what we have (and troubleshoot data tidying if necessary).
+
+```{r facet_line_graph}
+
+## Make plots of year vs value, with different colours for types of units, faceted by geographic location and type of structure
+
+## Set variables
+select_geo <- "Guelph, Ontario"
+# select_geo <- "Calgary, Alberta"
+facet_by_str <- TRUE
+if (facet_by_str){
+  facet_var <- "type_of_structure"
+  colour_var <- "type_of_unit"
+} else {
+  facet_var <- "type_of_unit"
+  colour_var <- "type_of_structure"
+}
+
+plot_housing <- housing %>%
+  filter(geo == select_geo)
+plot_line <- ggplot(plot_housing, aes(x = year,
+                              y = avg_monthly_rent,
+                              colour = get(colour_var))) +
+  geom_line() + 
+  facet_grid(cols = vars(get(facet_var))) + 
+  labs(title = paste0("Average monthly rents over time for ", select_geo),
+       x = "Year",
+       y = "Average monthly rent",
+       colour = "Type of unit")
+
+print(plot_line)
+```
+
+```{r facet_lm}
+
+## Same as line graph, but a linear model
+plot_lm <- ggplot(plot_housing, aes(x = year,
+                              y = avg_monthly_rent,
+                              colour = get(colour_var))) +
+  geom_point() +
+  geom_smooth(y ~ x, method = "lm") + 
+  facet_grid(cols = vars(get(facet_var))) + 
+  labs(title = paste0("Average monthly rents over time for ", select_geo),
+       x = "Year",
+       y = "Average monthly rent",
+       colour = "Type of unit")
+
+print(plot_lm)
 
 ```
