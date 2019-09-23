@@ -9,7 +9,7 @@ output:
 
 ```{r mac_pc_setup}
 ## Mac or PC? -- set git repo path
-mac <- FALSE
+mac <- TRUE
 if (mac){
   git_path <- "~/git-repos/"
 } else{
@@ -80,8 +80,12 @@ housing <- housing %>%
                           = "Row and apartment structures of three units and over",
                        "Row structs >2 units"
                           = "Row structures of three units and over"))
-#housing <- housing_sav ## recover saved dataframe
+housing_small <- housing %>%
+  filter(geo %in% sample(levels(geo), 5))
+save(housing, file = "cdn-rent-prices/data/housing.Rdata")
 ```
+
+Above I saved the tidy data for use with the shiny app.
 
 ## Explore data
 
@@ -92,7 +96,7 @@ Now that our data is in a nice, clean form, let's make some plots to look at wha
 ## Make plots of year vs value, with different colours for types of units, faceted by geographic location and type of structure
 
 ## Set variables
-select_geo <- "Guelph, Ontario"
+select_geo <- "Hamilton, Ontario"
 # select_geo <- "Calgary, Alberta"
 facet_by_str <- TRUE
 if (facet_by_str){
@@ -125,7 +129,7 @@ plot_lm <- ggplot(plot_housing, aes(x = year,
                               y = avg_monthly_rent,
                               colour = get(colour_var))) +
   geom_point() +
-  geom_smooth(y ~ x, method = "lm") + 
+  geom_smooth(formula = y ~ x, method = "lm") + 
   facet_grid(cols = vars(get(facet_var))) + 
   labs(title = paste0("Average monthly rents over time for ", select_geo),
        x = "Year",

@@ -1,0 +1,12 @@
+name: cdn-rent-prices
+title: cdn-rent-prices
+username:
+account: papsti
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 1231790
+bundleId: 2438144
+url: https://papsti.shinyapps.io/cdn-rent-prices/
+when: 1569264537.69775
+asMultiple: FALSE
+asStatic: FALSE
